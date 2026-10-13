@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d0c0a">
+<title>Ashen Reach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="title" class="overlay show">
+  <div class="panel">
+    <h1>ASHEN REACH</h1>
+    <p class="sub">A tiny soulslike</p>
+    <div class="divider"></div>
+    <p class="lore">Rise, Tarnished. Beyond the ruins waits Morgrave, the Ashen Knight.<br>Fell him, or die trying.</p>
+    <button id="btnStart" class="gold">Arise</button>
+    <div class="help">
+      <div class="col">
+        <b>Touch</b>
+        <span>Left side: move stick</span>
+        <span>Big button: light attack</span>
+        <span>Roll: tap to dodge, hold to sprint</span>
+        <span>Heavy, Flask, Lock-on</span>
+      </div>
+      <div class="col">
+        <b>Keyboard</b>
+        <span>WASD move &middot; Space roll / hold sprint</span>
+        <span>J or Click: attack &middot; K or R-click: heavy</span>
+        <span>E heal &middot; Q lock-on &middot; F interact</span>
+        <span>Esc pause</span>
+      </div>
+    </div>
+    <p class="tip">Landscape recommended.</p>
+  </div>
+</div>
+
+<div id="grace" class="overlay">
+  <div class="panel">
+    <h2 id="graceName">Site of Grace</h2>
+    <p class="sub">HP and flasks restored. Enemies have returned.</p>
+    <div class="divider"></div>
+    <div class="row head"><span>Level <b id="lvl">1</b></span><span>Runes <b id="runesHeld">0</b></span></div>
+    <div class="row"><span>Next level cost</span><b id="cost">0</b></div>
+    <div class="stat"><span>Vigor <small>(HP)</small></span><b id="sVig">10</b><button data-stat="vig">+</button></div>
+    <div class="stat"><span>Endurance <small>(Stamina)</small></span><b id="sEnd">10</b><button data-stat="end">+</button></div>
+    <div class="stat"><span>Strength <small>(Damage)</small></span><b id="sStr">10</b><button data-stat="str">+</button></div>
+    <div class="row small"><span>HP <b id="dHp"></b></span><span>Stamina <b id="dSt"></b></span><span>Attack <b id="dAtk"></b></span></div>
+    <button id="btnDepart" class="gold">Depart</button>
+  </div>
+</div>
+
+<div id="pause" class="overlay">
+  <div class="panel">
+    <h2>Paused</h2>
+    <div class="divider"></div>
+    <button id="btnResume" class="gold">Resume</button>
+    <button id="btnSound">Sound: On</button>
+    <button id="btnReset" class="danger">New Game (erase save)</button>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
