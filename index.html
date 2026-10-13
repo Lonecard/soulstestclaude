@@ -18,9 +18,9 @@
 <div id="title" class="overlay show">
   <div class="panel">
     <h1>ASHEN REACH</h1>
-    <p class="sub">A tiny soulslike</p>
+    <p class="sub">Rise, Tarnished</p>
     <div class="divider"></div>
-    <p class="lore">Rise, Tarnished. Beyond the ruins waits Morgrave, the Ashen Knight.<br>Fell him, or die trying.</p>
+    <p class="lore">Cross Limgrave and the storm-wracked hills, pass Margit at the Stormgate,<br>and claim the Great Rune from Godrick the Grafted.</p>
     <button id="btnStart" class="gold">Arise</button>
     <div class="help">
       <div class="col">
@@ -44,15 +44,24 @@
 
 <div id="grace" class="overlay">
   <div class="panel">
+    <button id="btnLeave" class="close" aria-label="Leave">&times;</button>
     <h2 id="graceName">Site of Grace</h2>
-    <p class="sub">HP and flasks restored. Enemies have returned.</p>
-    <div class="divider"></div>
-    <div class="row head"><span>Level <b id="lvl">1</b></span><span>Runes <b id="runesHeld">0</b></span></div>
-    <div class="row"><span>Next level cost</span><b id="cost">0</b></div>
-    <div class="stat"><span>Vigor <small>(HP)</small></span><b id="sVig">10</b><button data-stat="vig">+</button></div>
-    <div class="stat"><span>Endurance <small>(Stamina)</small></span><b id="sEnd">10</b><button data-stat="end">+</button></div>
-    <div class="stat"><span>Strength <small>(Damage)</small></span><b id="sStr">10</b><button data-stat="str">+</button></div>
-    <div class="row small"><span>HP <b id="dHp"></b></span><span>Stamina <b id="dSt"></b></span><span>Attack <b id="dAtk"></b></span></div>
+    <p class="sub">Rested. HP and flasks restored, and foes have returned.</p>
+    <div class="tabs">
+      <button data-tab="level" class="active">Level Up</button>
+      <button data-tab="equip">Equipment</button>
+      <button data-tab="travel">Travel</button>
+    </div>
+    <div class="tab show" id="tab-level">
+      <div class="row head"><span>Level <b id="lvl">1</b></span><span>Runes <b id="runesHeld">0</b></span></div>
+      <div class="row"><span>Next level cost</span><b id="cost">0</b></div>
+      <div class="stat"><span>Vigor <small>(HP)</small></span><b id="sVig">10</b><button data-stat="vig">+</button></div>
+      <div class="stat"><span>Endurance <small>(Stamina)</small></span><b id="sEnd">10</b><button data-stat="end">+</button></div>
+      <div class="stat"><span>Strength <small>(Damage)</small></span><b id="sStr">10</b><button data-stat="str">+</button></div>
+      <div class="row small"><span>HP <b id="dHp"></b></span><span>Stamina <b id="dSt"></b></span><span>Flasks <b id="dFl"></b></span></div>
+    </div>
+    <div class="tab" id="tab-equip"><div id="weaponList" class="list"></div></div>
+    <div class="tab" id="tab-travel"><div id="travelList" class="list"></div></div>
     <button id="btnDepart" class="gold">Depart</button>
   </div>
 </div>
@@ -67,6 +76,12 @@
   </div>
 </div>
 
-<script src="game.js"></script>
+<script src="js/core.js"></script>
+<script src="js/data.js"></script>
+<script src="js/world.js"></script>
+<script src="js/input.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/render.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>
