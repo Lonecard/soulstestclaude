@@ -83,6 +83,22 @@ button:disabled { opacity: .35; }
 .hint { font-size: 11px; opacity: .55; font-family: Georgia, serif; margin: 8px 6px 0; }
 #btnDepart { margin-top: 10px; }
 
+
+/* travel groups, weapon buttons */
+.list .group { color: var(--gold); font-size: 12px; letter-spacing: .12em; margin: 10px 6px 2px; opacity: .8; text-transform: uppercase; }
+.list .btns { display: flex; flex-direction: column; gap: 4px; }
+#btnTime { display: block; width: 100%; margin: 8px 0 0; }
+#progress { margin-bottom: 8px; line-height: 1.5; }
+
+/* world map */
+.mapov { padding: 0; flex-direction: column; background: #120f0b; }
+#mapc { flex: 1; width: 100%; min-height: 0; touch-action: none; position: static; }
+.mapbar { display: flex; gap: 6px; align-items: center; width: 100%;
+          padding: 6px max(10px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+          background: rgba(10,8,5,.92); border-top: 1px solid var(--gold-dim); }
+.mapbar button { margin: 0; padding: 6px 14px; min-height: 40px; }
+#mapInfo { flex: 1; font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 @media (max-height: 500px) {
   .panel { padding: 10px 16px; }
   h2 { font-size: 18px; }

@@ -1,75 +1,94 @@
 # Ashen Reach
 
-A small, mobile-first soulslike inspired by Elden Ring's opening: cross Limgrave and Stormhill, beat Margit at the Stormgate, and take on Godrick the Grafted in Stormveil Castle.
+A 2D, mobile-first soulslike recreation of Elden Ring's Lands Between (base game), in plain HTML5 canvas with no dependencies.
 
-It's plain HTML5 canvas with no dependencies.
+**Play:** open `index.html` in a browser. For a single self-contained file (easiest on a phone), run `python3 tools/build.py` and open `dist/ashen-reach.html`. Landscape is recommended.
 
-**Play:** open `index.html` in a browser. To get the whole game as one file (easiest on a phone), run `python3 tools/build.py`, which writes `dist/ashen-reach.html`. Landscape is recommended.
+## The world
+
+The overworld is laid out like the real map, with every region in its true relative position:
+
+- Limgrave and Stormhill
+- the Weeping Peninsula
+- Liurnia of the Lakes
+- Caelid and Dragonbarrow
+- the Altus Plateau and Mt. Gelmir
+- the Forbidden Lands
+- the Mountaintops of the Giants
+- the Consecrated Snowfield
+
+Regions connect through the real passages:
+
+| Passage | Connects |
+|---|---|
+| Bridge of Sacrifice | Limgrave and the Weeping Peninsula |
+| Stormveil (or the cliffside bypass) | Stormhill and Liurnia |
+| Grand Lift of Dectus (both medallion halves) | Liurnia and Altus |
+| Ruin-Strewn Precipice | Liurnia and Altus |
+| Leyndell (two Great Runes) | Altus and the Forbidden Lands |
+| Grand Lift of Rold (after Morgott) | Forbidden Lands and the Mountaintops |
+| Forge of the Giants (after the Fire Giant) | Mountaintops and Crumbling Farum Azula |
+
+What's in the world:
+
+- **121 overworld Sites of Grace** with their in-game names, plus graces inside dungeons (306 total).
+- **About 80 named locations**: churches, ruins, forts, villages, Minor Erdtrees, Divine Towers, and Leyndell with the Erdtree.
+- **70 enterable dungeons**:
+  - Legacy dungeons: Stormveil, Raya Lucaria, Caria Manor, Castle Morne, Redmane, Shaded Castle, Volcano Manor, Leyndell, Castle Sol, the Haligtree, Farum Azula, the Ashen Capital, and Mohgwyn.
+  - The underground: Siofra, Nokron, Deeproot, Ainsel, and the Lake of Rot.
+  - Catacombs, caves, tunnels and hero's graves, each with its real boss.
+  - Evergaols.
+- **About 80 boss types and roughly 115 boss encounters.** Examples include:
+  - Margit, Godrick, Rennala, Radahn, Rykard, Morgott, Mohg, Malenia, Maliketh, Placidusax, Godfrey/Hoarah Loux, Radagon and the Elden Beast.
+  - Dragons, Tree Sentinels, Night's Cavalry, Erdtree Avatars, Astel and many more.
+  - Phase 2 transitions, duos, and Great Runes from the shardbearers.
+
+## Systems
+
+- **Combat:** light combos, heavy attacks with hyper armor, rolls and backsteps with i-frames, poise breaks with critical hits, and lock-on.
+- **Weapon skills (Ashes of War):** 19 weapons, each with a signature skill that costs FP. Examples: Moonveil's Transient Moonlight, Rivers of Blood's Corpse Piler and Malenia's Waterfowl Dance.
+- **Status effects:**
+  - On you: blood loss, scarlet rot, poison and frostbite.
+  - On enemies: bleed and frost from your weapons.
+- **Elemental attacks:** holy, magic, fire, lightning, gravity, death, black flame and more. Delivered as volleys, strikes, beams, novas, pools, breath, leaps, and Margit's golden daggers.
+- **Torrent:** a mountable spirit steed in the overworld, plus a day/night cycle where Night's Cavalry and Deathbirds appear after dark.
+- **Sites of Grace:**
+  - Level up Vigor, Mind, Endurance and Strength.
+  - Upgrade weapons (+10).
+  - Fast travel and pass time.
+- **World map:** parchment-style, with fast travel to discovered graces.
+- **Saving:** progress is saved to `localStorage`.
 
 ## Controls
 
 | Action | Touch | Keyboard / Mouse |
 |---|---|---|
-| Move | Drag anywhere on the left half (floating stick) | WASD / arrows |
-| Light attack (combo) | Big **Attack** button | J / left click |
-| Heavy attack (hyper armor, big poise damage) | **Heavy** button | K / right click |
-| Dodge roll (i-frames) / backstep | Tap **Roll** (no direction = backstep) | Tap Space |
-| Sprint | Hold **Roll** | Hold Space or Shift |
-| Drink flask | **Flask** button | E |
-| Lock-on | **Lock** button | Q / Tab |
-| Rest / pick up / enter fog | Prompt button that appears | F |
-| Pause | top-right **II** | Esc |
+| Move | Left half (floating stick) | WASD / arrows |
+| Attack / Heavy | Attack / Heavy buttons | J or click / K or right-click |
+| Skill | Skill (star) button | L |
+| Roll / Sprint | Tap / hold Roll | Tap / hold Space (Shift sprints) |
+| Flask | Flask button | E |
+| Lock-on | Lock button | Q / Tab |
+| Interact | Prompt button | F |
+| Torrent / Map / Pause | Top-right buttons | T / M / Esc |
 
-## The journey
+## Accuracy notes
 
-1. **Limgrave**
-   - Graces: The First Step, Church of Elleh and Gatefront.
-   - Enemies: Wandering Nobles, Godrick Soldiers, archers and wolves.
-   - Field boss: the **Tree Sentinel** patrols the fields on horseback.
-2. **Stormhill**
-   - A rainy pass with wolf packs, soldiers and a **Troll**.
-3. **Margit, the Fell Omen** guards the Stormgate.
-   - Phase 1: cane combos, delayed slams and holy daggers.
-   - Phase 2: golden hammer and sword.
-4. **Stormveil Castle**
-   - Godrick Knights block with their shields, so flank them or use heavy attacks.
-   - A Banished Knight, plus archers on the walls.
-5. **Godrick the Grafted**
-   - Axe combos, stomps and a whirlwind.
-   - Phase 2: he grafts on a dragon head that breathes fire.
-
-## Weapons
-
-| Weapon | Found | Style |
-|---|---|---|
-| Longsword | Start | Balanced |
-| Uchigatana | Gatefront Ruins | Fast, causes blood loss |
-| Zweihander | Stormhill | Slow, staggers |
-| Golden Halberd | Tree Sentinel drop | Huge reach |
-
-Equip weapons at any Site of Grace. **Golden Seeds** add flask charges.
-
-## Systems
-
-- **Sites of Grace**
-  - Resting heals you and respawns enemies.
-  - From a grace you can level up (Vigor, Endurance, Strength), change equipment and fast travel.
-  - Golden guidance rays point the way.
-- **Combat**
-  - Breaking an enemy's poise staggers it, and hits on a staggered enemy are critical hits.
-  - Attacks have clear wind-up tells: a red outline, ground markers and a glint before delayed swings.
-- **Runes:** when you die you drop your runes. Pick them up again before you die a second time.
-- **Saving:** progress saves to `localStorage`.
-- **Performance:** rendering resolution drops automatically if a phone struggles.
+Region shapes and positions follow the in-game map but are approximate, since everything is drawn on a 100×100 grid. Bosses, graces and dungeon names come from the base game. Movesets are simplified 2D interpretations built from a shared library of attack types.
 
 ## Code layout
 
 | File | Contents |
 |---|---|
-| `js/core.js` | Utilities, canvas, audio, shared state |
-| `js/data.js` | Weapons, enemies, bosses, world layout |
-| `js/world.js` | Textures, decoration, collision, atmosphere |
-| `js/input.js` | Touch, keyboard and mouse |
-| `js/combat.js` | Player, enemy AI, bosses, hazards |
-| `js/render.js` | Drawing, lighting, weather, HUD |
-| `js/main.js` | Menus, saving, game loop |
+| `js/data/world.js` | Regions, barriers, graces, locations, dungeons, field bosses, items, lifts |
+| `js/data/bosses.js` | Boss definitions (look, moveset, rank, drops, Great Runes) |
+| `js/data/enemies.js` | Regular enemies and spawn tables |
+| `js/data/weapons.js` | Armaments and skills |
+| `js/data/moves.js` | Reusable attack builders and archetype kits |
+| `js/world.js` | Textures, terrain, dungeon generation, collision, atmosphere |
+| `js/combat.js` | Player, Torrent, skills, enemy AI, hazards, travel, day/night |
+| `js/models.js` | Character and creature models |
+| `js/render.js` | World drawing, lighting, weather |
+| `js/hud.js` | HUD and touch controls |
+| `js/map.js` | World map |
+| `js/main.js` | Menus, saving, boot |

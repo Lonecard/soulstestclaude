@@ -20,22 +20,23 @@
     <h1>ASHEN REACH</h1>
     <p class="sub">Rise, Tarnished</p>
     <div class="divider"></div>
-    <p class="lore">Cross Limgrave and the storm-wracked hills, pass Margit at the Stormgate,<br>and claim the Great Rune from Godrick the Grafted.</p>
+    <p class="lore">The Elden Ring is shattered. Cross the Lands Between, from Limgrave to the Mountaintops of the Giants,
+      claim the Great Runes of the demigods and become Elden Lord.</p>
     <button id="btnStart" class="gold">Arise</button>
     <div class="help">
       <div class="col">
         <b>Touch</b>
         <span>Left side: move stick</span>
-        <span>Big button: light attack</span>
+        <span>Attack · Heavy · Skill · Flask · Lock-on</span>
         <span>Roll: tap to dodge, hold to sprint</span>
-        <span>Heavy, Flask, Lock-on</span>
+        <span>Top right: Torrent, Map, Pause</span>
       </div>
       <div class="col">
         <b>Keyboard</b>
-        <span>WASD move &middot; Space roll / hold sprint</span>
-        <span>J or Click: attack &middot; K or R-click: heavy</span>
-        <span>E heal &middot; Q lock-on &middot; F interact</span>
-        <span>Esc pause</span>
+        <span>WASD move · Space roll / hold sprint</span>
+        <span>J / Click attack · K / R-click heavy · L skill</span>
+        <span>E flask · Q lock-on · F interact</span>
+        <span>T Torrent · M map · Esc pause</span>
       </div>
     </div>
     <p class="tip">Landscape recommended.</p>
@@ -46,19 +47,22 @@
   <div class="panel">
     <button id="btnLeave" class="close" aria-label="Leave">&times;</button>
     <h2 id="graceName">Site of Grace</h2>
-    <p class="sub">Rested. HP and flasks restored, and foes have returned.</p>
+    <p class="sub" id="graceSub"></p>
     <div class="tabs">
       <button data-tab="level" class="active">Level Up</button>
-      <button data-tab="equip">Equipment</button>
+      <button data-tab="equip">Armaments</button>
       <button data-tab="travel">Travel</button>
     </div>
     <div class="tab show" id="tab-level">
       <div class="row head"><span>Level <b id="lvl">1</b></span><span>Runes <b id="runesHeld">0</b></span></div>
       <div class="row"><span>Next level cost</span><b id="cost">0</b></div>
-      <div class="stat"><span>Vigor <small>(HP)</small></span><b id="sVig">10</b><button data-stat="vig">+</button></div>
-      <div class="stat"><span>Endurance <small>(Stamina)</small></span><b id="sEnd">10</b><button data-stat="end">+</button></div>
-      <div class="stat"><span>Strength <small>(Damage)</small></span><b id="sStr">10</b><button data-stat="str">+</button></div>
-      <div class="row small"><span>HP <b id="dHp"></b></span><span>Stamina <b id="dSt"></b></span><span>Flasks <b id="dFl"></b></span></div>
+      <div class="stat"><span>Vigor <small>(HP)</small></span><b id="s_vig">10</b><button data-stat="vig">+</button></div>
+      <div class="stat"><span>Mind <small>(FP)</small></span><b id="s_mnd">10</b><button data-stat="mnd">+</button></div>
+      <div class="stat"><span>Endurance <small>(Stamina)</small></span><b id="s_end">10</b><button data-stat="end">+</button></div>
+      <div class="stat"><span>Strength <small>(Damage)</small></span><b id="s_str">10</b><button data-stat="str">+</button></div>
+      <div class="row small"><span>HP <b id="dHp"></b></span><span>FP <b id="dFp"></b></span><span>Stamina <b id="dSt"></b></span><span>Flasks <b id="dFl"></b></span></div>
+      <div class="row small"><span>Great Runes: <b id="gRunes"></b></span></div>
+      <button id="btnTime">Pass time</button>
     </div>
     <div class="tab" id="tab-equip"><div id="weaponList" class="list"></div></div>
     <div class="tab" id="tab-travel"><div id="travelList" class="list"></div></div>
@@ -66,22 +70,42 @@
   </div>
 </div>
 
+<div id="map" class="overlay mapov">
+  <canvas id="mapc"></canvas>
+  <div class="mapbar">
+    <button id="mapZoomOut">&minus;</button>
+    <button id="mapZoomIn">+</button>
+    <span id="mapInfo"></span>
+    <button id="mapTravel" class="gold">Travel</button>
+    <button id="mapClose">Close</button>
+  </div>
+</div>
+
 <div id="pause" class="overlay">
   <div class="panel">
     <h2>Paused</h2>
     <div class="divider"></div>
+    <p class="sub" id="progress"></p>
     <button id="btnResume" class="gold">Resume</button>
+    <button id="btnMapP">Map</button>
     <button id="btnSound">Sound: On</button>
     <button id="btnReset" class="danger">New Game (erase save)</button>
   </div>
 </div>
 
 <script src="js/core.js"></script>
-<script src="js/data.js"></script>
+<script src="js/data/moves.js"></script>
+<script src="js/data/weapons.js"></script>
+<script src="js/data/bosses.js"></script>
+<script src="js/data/enemies.js"></script>
+<script src="js/data/world.js"></script>
 <script src="js/world.js"></script>
 <script src="js/input.js"></script>
 <script src="js/combat.js"></script>
+<script src="js/models.js"></script>
 <script src="js/render.js"></script>
+<script src="js/hud.js"></script>
+<script src="js/map.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

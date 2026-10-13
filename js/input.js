@@ -2,7 +2,7 @@
 /* Input: touch joystick + buttons, keyboard, mouse. */
 
 const keys = new Set();
-const input = { attack: false, heavy: false, roll: false, heal: false, lock: false, ctx: false };
+const input = { attack: false, heavy: false, roll: false, heal: false, lock: false, ctx: false, skill: false, whistle: false };
 let spaceDown = 0;
 const joy = { id: null, bx: 0, by: 0, x: 0, y: 0, R: 60 };
 const buttons = [];
@@ -13,6 +13,9 @@ const B = {
   roll: btn('roll', 'ROLL', { onUp: (b) => { if (performance.now() - b.t0 < 280) input.roll = true; } }),
   heal: btn('heal', 'FLASK', { onDown: () => (input.heal = true) }),
   lock: btn('lock', 'LOCK', { onDown: () => (input.lock = true) }),
+  skill: btn('skill', 'SKILL', { onDown: () => (input.skill = true) }),
+  whistle: btn('whistle', 'TORRENT', { small: true, onDown: () => (input.whistle = true) }),
+  map: btn('map', 'MAP', { small: true, onDown: () => openMap() }),
   ctx: btn('ctx', '', { pill: true, visible: () => !!G.ctxAction, onDown: () => (input.ctx = true) }),
   pause: btn('pause', 'II', { small: true, onDown: () => setPause(true) }),
 };
@@ -37,7 +40,10 @@ function layoutButtons() {
   Object.assign(B.heal, { x: ax - R * 2.3, y: ay - R * 2.05, r: R * 0.72 });
   Object.assign(B.lock, { x: ax + R * 0.35, y: ay - R * 4.3, r: R * 0.6 });
   Object.assign(B.ctx, { x: W / 2, y: H * 0.62, r: R * 0.75 });
+  Object.assign(B.skill, { x: ax - R * 1.95, y: ay - R * 4.15, r: R * 0.66 });
   Object.assign(B.pause, { x: W - 26 - SAFE.r, y: 26 + SAFE.t, r: 20 });
+  Object.assign(B.map, { x: W - 74 - SAFE.r, y: 26 + SAFE.t, r: 20 });
+  Object.assign(B.whistle, { x: W - 122 - SAFE.r, y: 26 + SAFE.t, r: 20 });
   joy.R = R * 1.25;
 }
 
@@ -95,6 +101,7 @@ window.addEventListener('keydown', (e) => {
     if (G.state === 'play') setPause(true);
     else if (G.state === 'pause') setPause(false);
     else if (G.state === 'menu') closeGrace();
+    else if (G.state === 'map') closeMap();
     return;
   }
   if (G.state !== 'play') return;
@@ -103,6 +110,9 @@ window.addEventListener('keydown', (e) => {
   if (k === 'KeyE' || k === 'KeyR') input.heal = true;
   if (k === 'KeyQ' || k === 'Tab') input.lock = true;
   if (k === 'KeyF' || k === 'Enter') input.ctx = true;
+  if (k === 'KeyL' || k === 'KeyU') input.skill = true;
+  if (k === 'KeyT') input.whistle = true;
+  if (k === 'KeyM') openMap();
   if (k === 'Space') spaceDown = performance.now();
 });
 window.addEventListener('keyup', (e) => {

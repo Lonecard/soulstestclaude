@@ -103,18 +103,21 @@ function stopDrone() {
 
 // ---------------------------------------------------------------- shared state
 const G = {
-  state: 'title', time: 0, hitstop: 0, shake: 0,
-  enemies: [], projectiles: [], rings: [], particles: [], decals: [], numbers: [], banners: [], motes: [], rain: [],
-  graces: [], graceIdx: 0, defeated: new Set(), taken: new Set(), bloodstain: null,
-  deadT: 0, ctxAction: null, runeShow: 0, zone: '', drumT: 0, activeBoss: null, arenaFight: null,
-  amb: null, menuOpenedAt: 0,
+  state: 'title', time: 0, hitstop: 0, shake: 0, clock: 10, wasNight: false,
+  all: [], enemies: [], projectiles: [], pproj: [], rings: [], strikes: [], pools: [],
+  particles: [], decals: [], numbers: [], banners: [], motes: [], rain: [],
+  graces: [], graceIdx: 0, items: [], defeated: new Set(), defeatedTypes: new Set(), taken: new Set(), bloodstain: null,
+  inst: null, returnPoint: null, deadT: 0, ctxAction: null, runeShow: 0, zone: '', locName: '', drumT: 0,
+  activeBosses: [], arenaFight: null, arenaRect: null, amb: null, menuOpenedAt: 0,
 };
-const cam = { x: 1200, y: 6900 };
+const cam = { x: 0, y: 0 };
 const P = {
-  x: 1200, y: 6990, r: 12, face: -Math.PI / 2, vx: 0, vy: 0,
-  hp: 0, maxHp: 0, hpLag: 0, st: 0, maxSt: 0, stDelay: 0, flasks: 4, maxFlasks: 4, seeds: 0,
-  vig: 10, end: 10, str: 10, runes: 0,
-  weapon: 'longsword', owned: ['longsword'],
-  state: 'free', t: 0, atk: null, combo: 0, buffer: null, bufferT: 0, hitSet: null, swung: false,
+  x: 0, y: 0, r: 12, face: -Math.PI / 2, vx: 0, vy: 0, air: 0,
+  hp: 0, maxHp: 0, hpLag: 0, st: 0, maxSt: 0, stDelay: 0, fp: 0, maxFp: 0, flasks: 4, maxFlasks: 4, seeds: 0,
+  vig: 10, mnd: 10, end: 10, str: 10, runes: 0, greatRunes: [],
+  weapon: 'longsword', owned: ['longsword'], wlv: {},
+  state: 'free', t: 0, atk: null, atkEl: null, skill: null, combo: 0, buffer: null, bufferT: 0, hitSet: null, swung: false,
   iframes: 0, flash: 0, lock: null, rollDir: 0, backstep: false, healed: false, sprinting: false, moveAnim: 0, moving: 0,
+  mounted: false, buffT: 0, buffMul: 1,
+  status: { bleed: 0, rot: 0, poison: 0, frost: 0 }, rotT: 0, poisonT: 0, frostT: 0,
 };
