@@ -10,7 +10,7 @@ const OLD_SAVE_KEY = 'ashenreach_save_v3'; // older map scale: keep progress, dr
 function save() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      vig: P.vig, mnd: P.mnd, end: P.end, str: P.str, runes: P.runes, seeds: P.seeds, cerulean: P.cerulean, weapon: P.weapon, owned: P.owned, wlv: P.wlv,
+      vig: P.vig, mnd: P.mnd, end: P.end, str: P.str, runes: P.runes, seeds: P.seeds, cerulean: P.cerulean, staff: P.staff, spells: P.spells, memory: P.memory, ashes: P.ashes, ash: P.ash, bell: P.bell, weapon: P.weapon, owned: P.owned, wlv: P.wlv,
       greatRunes: P.greatRunes, grace: graceKey(G.graces[G.graceIdx]), found: G.graces.filter((g) => g.found).map(graceKey),
       defeated: [...G.defeated], defeatedTypes: [...G.defeatedTypes], taken: [...G.taken], bloodstain: G.bloodstain, clock: G.clock, sound: AU.on,
     }));
@@ -27,6 +27,12 @@ function load() {
     if (!P.owned.length) P.owned = ['longsword'];
     P.weapon = P.owned.includes(s.weapon) ? s.weapon : P.owned[0];
     P.greatRunes = s.greatRunes || [];
+    P.staff = !!s.staff; P.bell = !!s.bell;
+    if (Array.isArray(s.spells)) P.spells = s.spells.filter((id) => SPELLS[id]);
+    if (!P.spells.includes('heal')) P.spells.unshift('heal');
+    if (Array.isArray(s.memory)) P.memory = s.memory.filter((id) => P.spells.includes(id)).slice(0, 3);
+    if (Array.isArray(s.ashes)) P.ashes = s.ashes.filter((id) => ASHES[id]);
+    P.ash = P.ashes.includes(s.ash) ? s.ash : P.ashes[0] || null;
     const found = new Set(s.found || []);
     G.graces.forEach((g) => { if (found.has(graceKey(g))) g.found = true; });
     const gi = G.graces.findIndex((g) => graceKey(g) === s.grace);
@@ -109,6 +115,7 @@ function refreshGrace() {
   const hint = document.createElement('p'); hint.className = 'hint';
   hint.textContent = 'Armaments are found where they lie in the Lands Between, or taken from the great enemies who wield them.';
   wl.appendChild(hint);
+  refreshMagic();
   // travel, grouped by region / dungeon
   const tl = $('travelList'); tl.innerHTML = '';
   const groups = new Map();
@@ -137,6 +144,37 @@ document.querySelectorAll('#tab-level button[data-stat]').forEach((b) => b.addEv
   initAudio(); sfx('runes');
   refreshGrace(); save();
 }));
+// spells to memorise (3 slots) and the Spirit Ash to carry
+function refreshMagic() {
+  const ml = $('magicList'); ml.innerHTML = '';
+  const head = (t) => { const h = document.createElement('div'); h.className = 'group'; h.textContent = t; ml.appendChild(h); };
+  const row = (title, sub, btnText, on, disabled) => {
+    const r = document.createElement('div'); r.className = 'item' + (btnText === 'Memorised' || btnText === 'Equipped' ? ' equipped' : '');
+    r.innerHTML = `<div><b>${title}</b><small>${sub}</small></div>`;
+    const b = document.createElement('button'); b.textContent = btnText; b.disabled = !!disabled;
+    b.addEventListener('click', () => { on(); sfx('item'); refreshGrace(); save(); });
+    r.appendChild(b); ml.appendChild(r);
+  };
+  head('Catalysts');
+  const cat = document.createElement('div'); cat.className = 'item';
+  cat.innerHTML = `<div><b>Finger Seal</b><small>Casts incantations</small></div><div><b>${P.staff ? "Astrologer's Staff" : '—'}</b><small>${P.staff ? 'Casts sorceries' : 'No staff yet (Liurnia)'}</small></div>`;
+  ml.appendChild(cat);
+  head(`Memory slots · ${P.memory.length}/3`);
+  for (const id of P.spells) {
+    const sp = SPELLS[id], mem = P.memory.includes(id);
+    const kind = sp.type === 'incant' ? 'Incantation' : 'Sorcery';
+    row(sp.name, `${kind} · ${sp.fp} FP · ${sp.desc}`, mem ? 'Forget' : 'Memorise', () => {
+      if (mem) P.memory = P.memory.filter((m) => m !== id); else P.memory.push(id);
+      P.spellIdx = 0;
+    }, !mem && P.memory.length >= 3);
+  }
+  head(P.bell ? 'Spirit Ashes' : 'Spirit Ashes · find the Spirit Calling Bell (Church of Elleh)');
+  if (!P.ashes.length) { const r = document.createElement('div'); r.className = 'item'; r.innerHTML = '<div><small>None yet</small></div>'; ml.appendChild(r); }
+  for (const id of P.ashes) {
+    const A = ASHES[id];
+    row(A.name, `${A.hpCost ? Math.round(A.hpCost * 100) + '% HP' : A.fp + ' FP'} · ${A.desc}`, P.ash === id ? 'Equipped' : 'Equip', () => { P.ash = id; }, P.ash === id);
+  }
+}
 function shiftFlask(d) {
   P.cerulean = clamp(P.cerulean + d, 0, P.totalFlasks);
   recalcStats(); P.flasks = P.maxFlasks; P.fpFlasks = P.maxFpFlasks;
@@ -251,8 +289,10 @@ G.graceIdx = G.graces.findIndex((g) => g.name === START.grace);
 G.items = [
   ...ITEMS_OW.map((i) => ({ ...i, x: i.x * MU, y: i.y * MU, inst: null })),
   ...INST_LIST.filter((i) => i.pickup).map((i) => i.pickup),
+  ...MAGIC_ITEMS.map((i) => ({ ...i, x: i.x * MU, y: i.y * MU, inst: null })),
 ];
 const hadSave = load();
+checkGifts(true);
 if (hadSave) $('btnStart').textContent = 'Continue';
 recalcStats();
 respawnAtGrace();

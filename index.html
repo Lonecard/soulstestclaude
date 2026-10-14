@@ -51,13 +51,14 @@
     <div class="tabs">
       <button data-tab="level" class="active">Level Up</button>
       <button data-tab="equip">Armaments</button>
+      <button data-tab="magic">Magic</button>
       <button data-tab="travel">Travel</button>
     </div>
     <div class="tab show" id="tab-level">
       <div class="row head"><span>Level <b id="lvl">1</b></span><span>Runes <b id="runesHeld">0</b></span></div>
       <div class="row"><span>Next level cost</span><b id="cost">0</b></div>
       <div class="stat"><span>Vigor <small>(HP)</small></span><b id="s_vig">10</b><button data-stat="vig">+</button></div>
-      <div class="stat"><span>Mind <small>(FP)</small></span><b id="s_mnd">10</b><button data-stat="mnd">+</button></div>
+      <div class="stat"><span>Mind <small>(FP, spells)</small></span><b id="s_mnd">10</b><button data-stat="mnd">+</button></div>
       <div class="stat"><span>Endurance <small>(Stamina)</small></span><b id="s_end">10</b><button data-stat="end">+</button></div>
       <div class="stat"><span>Strength <small>(Damage)</small></span><b id="s_str">10</b><button data-stat="str">+</button></div>
       <div class="stat flask"><span>Flask split <small>(<span class="crim">Crimson</span> HP / <span class="ceru">Cerulean</span> FP)</small></span><b id="s_flask">4/1</b><span class="btns2"><button id="flaskHp">+HP</button><button id="flaskFp">+FP</button></span></div>
@@ -66,6 +67,7 @@
       <button id="btnTime">Pass time</button>
     </div>
     <div class="tab" id="tab-equip"><div id="weaponList" class="list"></div></div>
+    <div class="tab" id="tab-magic"><div id="magicList" class="list"></div></div>
     <div class="tab" id="tab-travel"><div id="travelList" class="list"></div></div>
     <button id="btnDepart" class="gold">Depart</button>
   </div>
@@ -102,9 +104,12 @@
 <script src="js/data/bosses.js"></script>
 <script src="js/data/enemies.js"></script>
 <script src="js/data/world.js"></script>
+<script src="js/data/magic.js"></script>
 <script src="js/world.js"></script>
 <script src="js/input.js"></script>
 <script src="js/combat.js"></script>
+<script src="js/phases.js"></script>
+<script src="js/magic.js"></script>
 <script src="js/models.js"></script>
 <script src="js/render.js"></script>
 <script src="js/hud.js"></script>

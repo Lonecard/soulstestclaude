@@ -70,6 +70,9 @@ const MOBS = {
   blood_cultist: MB('Blood Cultist', HU({ body: '#3a0a0a', armor: '#6a1a1a', robe: true, helm: 'mohg', weapon: WPN('katana', 40, { col: '#c03040' }) }), 13, 95, 320, 380,
     merge(M.combo('c', 3, { dmg: 22, range: 54, arc: 2.0, wind: 0.45, chain: 0.6, el: 'blood', status: 'bleed' }), M.volley('b', { dmg: 18, n: 2, el: 'blood', status: 'bleed' }))),
   haligtree_soldier: MB('Haligtree Soldier', HU({ body: '#6a5a3a', armor: '#c8b070', cape: '#8a7a4a', helm: 'kettle', shield: 'round', shieldCol: '#c8b070', weapon: WPN('sword', 44) }), 13, 80, 300, 360, sw(26, 56)),
+  // Rennala's students: their chanting shields her (phase 1)
+  rennala_student: MB('Academy Student', HU({ body: '#2a3a6a', armor: '#4a5a9a', robe: true, helm: 'glint', aura: '255,220,140', weapon: WPN('staff', 34, { col: '#e0d0a0' }) }), 12, 40, 60, 0,
+    M.combo('bk', 1, { dmg: 8, range: 40, arc: 2.0, wind: 0.8, lunge: 40, rec: 1.2 }), { aggro: 600, student: true }),
   ashen_spirit: MB('Ashen Spirit', HU({ body: '#4a4a4a', armor: '#7a7a7a', helm: 'knight', ghost: true, weapon: WPN('sword', 48) }), 14, 90, 400, 500, sw(30, 60)),
 };
 

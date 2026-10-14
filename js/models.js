@@ -561,11 +561,12 @@ function drawTroll(e, tel, pose) {
   drawShadow(e.x, e.y, r, 0.4);
   if (L.ghost) { ctx.globalAlpha *= 0.75; glowAt(e.x, e.y - r, r * 2.2, '255,80,50', 0.25); }
   const lift = e.air * 80;
-  const by = e.y - r * 0.9 - lift, c = Math.cos(e.face), s = Math.sin(e.face), px = -s, py = c;
+  const by = e.y - r * (L.crawl ? 0.5 : 0.9) - lift, c = Math.cos(e.face), s = Math.sin(e.face), px = -s, py = c;
   const step = Math.sin(e.walk * 0.7) * r * 0.25;
   const skin = L.skin;
   ctx.fillStyle = shade(skin, -0.35);
-  for (const sd of [1, -1]) { ctx.beginPath(); ctx.ellipse(e.x + px * r * 0.45 * sd + c * step * sd, e.y - 4 + s * step * sd * 0.5 - lift, r * 0.32, r * 0.24, e.face, 0, TAU); ctx.fill(); }
+  if (L.crawl) glowAt(e.x - px * r * 0.45, e.y - 6, r * 0.7, '255,120,40', 0.6); // the severed leg still burns
+  for (const sd of L.crawl ? [1] : [1, -1]) { ctx.beginPath(); ctx.ellipse(e.x + px * r * 0.45 * sd + c * step * sd, e.y - 4 + s * step * sd * 0.5 - lift, r * 0.32, r * 0.24, e.face, 0, TAU); ctx.fill(); }
   const behind = s < -0.2;
   const weapon = () => {
     const hx = e.x + Math.cos(e.face + 1.1) * r * 0.95, hy = by + Math.sin(e.face + 1.1) * r * 0.7;

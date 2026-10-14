@@ -41,7 +41,13 @@ What's in the world:
 - **About 80 boss types and roughly 115 boss encounters.** Examples include:
   - Margit, Godrick, Rennala, Radahn, Rykard, Morgott, Mohg, Malenia, Maliketh, Placidusax, Godfrey/Hoarah Loux, Radagon and the Elden Beast.
   - Dragons, Tree Sentinels, Night's Cavalry, Erdtree Avatars, Astel and many more.
-  - Phase 2 transitions, duos, and Great Runes from the shardbearers.
+  - Real second phases instead of a generic power-up:
+    - Godrick grafts on a dragon's head; Radahn crashes down as a meteor.
+    - Rennala hides behind her chanting students, then calls the Full Moon with a fresh health bar and summons spirits.
+    - The God-Devouring Serpent splits open to reveal Rykard; the Beast Clergyman becomes Maliketh, whose Black Blade inflicts Destined Death.
+    - Malenia blooms into the Goddess of Rot (Scarlet Aeonia, new health bar); Mohg performs his Nihil ritual.
+    - Godfrey becomes Hoarah Loux and grabs you; the Fire Giant severs his own leg and crawls on.
+  - Duos and escorts, and Great Runes from the shardbearers.
 
 ## Systems
 
@@ -51,6 +57,8 @@ What's in the world:
   - On you: blood loss, scarlet rot, poison and frostbite.
   - On enemies: bleed and frost from your weapons.
 - **Elemental attacks:** holy, magic, fire, lightning, gravity, death, black flame and more. Delivered as volleys, strikes, beams, novas, pools, breath, leaps, and Margit's golden daggers.
+- **Incantations and sorceries:** you start with a Finger Seal and Heal. Find Golden Vow, Flame, Grant Me Strength, Lightning Spear, the Astrologer's Staff with Glintstone Pebble, Rock Sling and Comet Azur in the world; Black Flame and Rennala's Full Moon come from bosses. Memorise up to three at a grace (Magic tab). Damage scales with Mind.
+- **Spirit Ashes:** Renna gives you the Spirit Calling Bell and Lone Wolf Ashes at the Church of Elleh, Roderika gives you Jellyfish Ashes at the Stormhill Shack, and Black Knife Tiche and the Mimic Tear come from their bosses. Summon one per boss fight from the prompt that appears; bosses fight back against them.
 - **Torrent:** a mountable spirit steed in the overworld, plus a day/night cycle where Night's Cavalry and Deathbirds appear after dark.
 - **Sites of Grace:**
   - Level up Vigor, Mind, Endurance and Strength.
@@ -69,6 +77,8 @@ What's in the world:
 | Roll / Sprint | Tap / hold Roll | Tap / hold Space (Shift sprints) |
 | Crimson Tears (HP flask) | Orange flask button | E |
 | Cerulean Tears (FP flask) | Blue flask button | R |
+| Spell / switch spell | Seal button / small arrow | C / V |
+| Summon Spirit Ash | Prompt during boss fights | F |
 | Lock-on | Lock button | Q / Tab |
 | Interact | Prompt button | F |
 | Torrent / Map / Pause | Top-right buttons | T / M / Esc |

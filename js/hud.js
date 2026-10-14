@@ -14,6 +14,7 @@ function drawHUD() {
   const maxBar = W * 0.4;
   const hpW = Math.min(maxBar, 110 + P.maxHp * 0.45), fpW = Math.min(maxBar, 80 + P.maxFp * 0.8), stW = Math.min(maxBar, 90 + P.maxSt * 0.7);
   bar(x0, y0, hpW, 9, P.hp / P.maxHp, P.hpLag / P.maxHp, '#7a1410', '#c0302a');
+  if (P.dd) { ctx.fillStyle = 'rgba(30,8,14,0.9)'; ctx.fillRect(x0 + hpW * (1 - P.dd), y0, hpW * P.dd, 9); ctx.fillStyle = '#c83250'; ctx.fillRect(x0 + hpW * (1 - P.dd), y0, 1.5, 9); }
   bar(x0, y0 + 14, fpW, 5, P.fp / P.maxFp, 0, '#1a3a8a', '#4a7ae0');
   bar(x0, y0 + 24, stW, 5, Math.max(0, P.st) / P.maxSt, 0, '#2c6a2a', '#5aa850');
   // statuses building up
@@ -41,7 +42,10 @@ function drawHUD() {
   const wl = wLevel();
   ctx.fillText(weapon().name + (wl ? ' +' + wl : ''), x0 + 64, fy + 10);
   if (weapon().skill) { ctx.font = '9px Cinzel, Georgia, serif'; ctx.fillStyle = 'rgba(150,180,255,0.75)'; ctx.fillText(weapon().skill.name + ' (' + weapon().skill.fp + ' FP)', x0 + 64, fy + 22); }
-  if (P.buffT > 0) { ctx.fillStyle = '#ffe08a'; ctx.fillText('✦ ' + Math.ceil(P.buffT) + 's', x0, fy + 38); }
+  let byy = fy + 38;
+  if (P.buffT > 0) { ctx.fillStyle = '#ffe08a'; ctx.fillText('✦ ' + Math.ceil(P.buffT) + 's', x0, byy); byy += 12; }
+  ctx.font = '9px Cinzel, Georgia, serif';
+  for (const b of P.buffs) { ctx.fillStyle = `rgb(${b.col || '255,220,130'})`; ctx.fillText('✦ ' + b.name + '  ' + Math.ceil(b.t) + 's', x0, byy); byy += 11; }
   // runes, level, clock, great runes
   ctx.textAlign = 'right';
   const rx = W - 16 - SAFE.r - (showTouch ? 140 : 0), ry = 30 + SAFE.t;
@@ -61,7 +65,7 @@ function drawHUD() {
     ctx.textAlign = 'left'; ctx.font = '13px Cinzel, Georgia, serif';
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillText(b.name, bx + 1, by - 7);
     ctx.fillStyle = '#e8dfc8'; ctx.fillText(b.name, bx, by - 8);
-    bar(bx, by, bw, 7, b.hp / b.maxHp, b.hpLag / b.maxHp, '#6a1410', b.phase2 ? '#d0502a' : '#b0281e');
+    bar(bx, by, bw, 7, b.hp / b.maxHp, b.hpLag / b.maxHp, '#6a1410', '#b0281e');
     ctx.fillStyle = '#c9a95a';
     for (const ex of [bx - 6, bx + bw + 6]) { ctx.beginPath(); ctx.moveTo(ex, by - 2); ctx.lineTo(ex + 4, by + 3.5); ctx.lineTo(ex, by + 9); ctx.lineTo(ex - 4, by + 3.5); ctx.fill(); }
     if (b.dmgAccum > 0) { ctx.textAlign = 'right'; ctx.fillStyle = '#eee'; ctx.fillText(Math.round(b.dmgAccum), bx + bw, by - 8); }
@@ -104,7 +108,7 @@ function drawControls() {
       continue;
     }
     let active = b.down;
-    const dim = (b.name === 'heal' && P.flasks <= 0) || (b.name === 'fpheal' && P.fpFlasks <= 0) || (b.name === 'skill' && (!weapon().skill || P.fp < weapon().skill.fp)) || (b.name === 'whistle' && !!G.inst);
+    const dim = (b.name === 'heal' && P.flasks <= 0) || (b.name === 'fpheal' && P.fpFlasks <= 0) || (b.name === 'skill' && (!weapon().skill || P.fp < weapon().skill.fp)) || (b.name === 'whistle' && !!G.inst) || (b.name === 'spell' && (!curSpell() || P.fp < curSpell().fp || (curSpell().type === 'sorc' && !P.staff)));
     if (b.name === 'lock') active = active || !!P.lock;
     if (b.name === 'whistle') active = active || P.mounted;
     ctx.fillStyle = active ? 'rgba(201,169,90,0.35)' : 'rgba(10,8,5,0.45)';
@@ -151,6 +155,19 @@ function drawIcon(b, dim) {
     case 'skill':
       ctx.fillStyle = dim ? 'rgba(120,160,255,0.3)' : '#8ab0ff';
       ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU, rr = i % 2 ? s * 0.35 : s * 0.85; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); break;
+    case 'spell': {
+      const sp = curSpell(), inc = sp && sp.type === 'incant';
+      ctx.fillStyle = dim ? 'rgba(239,227,194,0.3)' : inc ? '#ffe08a' : '#9ab8ff';
+      if (inc) { // finger seal
+        ctx.beginPath(); ctx.ellipse(0, s * 0.2, s * 0.45, s * 0.55, 0, 0, TAU); ctx.fill();
+        ctx.fillRect(-s * 0.1, -s * 0.9, s * 0.2, s * 0.7);
+      } else { ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-s * 0.6, s * 0.8); ctx.lineTo(s * 0.4, -s * 0.5); ctx.stroke(); ctx.beginPath(); ctx.arc(s * 0.5, -s * 0.6, s * 0.28, 0, TAU); ctx.fill(); }
+      if (sp) { ctx.font = `${Math.round(r * 0.3)}px Cinzel, Georgia, serif`; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(239,227,194,0.85)'; ctx.fillText(sp.name.length > 14 ? sp.name.slice(0, 13) + '…' : sp.name, 0, r + 11); }
+      break;
+    }
+    case 'cycle':
+      ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, s * 0.8, -2.6, 1.6); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(s * 0.0, s * 0.8); ctx.lineTo(-s * 0.5, s * 0.55); ctx.lineTo(-s * 0.1, s * 0.3); ctx.stroke(); break;
     case 'pause':
       ctx.fillRect(-5, -6, 3.5, 12); ctx.fillRect(1.5, -6, 3.5, 12); break;
     case 'map':

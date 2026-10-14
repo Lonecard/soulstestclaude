@@ -46,7 +46,7 @@ function recalcStats() {
   P.maxFlasks = P.totalFlasks - P.cerulean; P.maxFpFlasks = P.cerulean;
   P.flasks = Math.min(P.flasks, P.maxFlasks); P.fpFlasks = Math.min(P.fpFlasks, P.maxFpFlasks);
 }
-const dmgMult = () => (1 + (P.str - 10) * 0.065) * (1 + wLevel() * 0.1) * (P.buffT > 0 ? P.buffMul : 1);
+const dmgMult = () => (1 + (P.str - 10) * 0.065) * (1 + wLevel() * 0.1) * (P.buffT > 0 ? P.buffMul : 1) * buffDmg();
 const tierMul = (t) => ({ hp: 1 + 0.62 * (t - 1), dmg: 1 + 0.36 * (t - 1), runes: Math.pow(1.75, t - 1) });
 const isNight = () => G.clock >= 19 || G.clock < 5;
 function tierAt(x, y, inst) {
@@ -59,7 +59,7 @@ function tierAt(x, y, inst) {
 let UID = 0;
 function makeEnemy(id, x, y, o = {}) {
   const isBoss = !!BOSSES[id];
-  const def = isBoss ? BOSSES[id] : MOBS[id];
+  const def = isBoss ? { ...BOSSES[id] } : MOBS[id];
   const t = tierAt(x, y, o.inst);
   const tm = tierMul(t);
   const rank = isBoss ? RANK[def.rank] || RANK.field : null;
@@ -188,6 +188,7 @@ function placePlayer(x, y, inst) {
   P.x = x; P.y = y; P.vx = P.vy = 0; P.lock = null; P.buffer = null; P.iframes = 0.8;
   if (inst !== G.inst) { G.inst = inst; activateRealm(); }
   if (inst) P.mounted = false;
+  clearAllies(false);
   cam.x = P.x; cam.y = P.y;
   G.arenaFight = null; G.arenaRect = null; G.arenaCirc = null; stopDrone();
   G.zone = ''; G.locName = '';
@@ -195,6 +196,7 @@ function placePlayer(x, y, inst) {
 function respawnAtGrace() {
   const g = G.graces[G.graceIdx];
   recalcStats();
+  P.dd = 0; P.ddT = 0;
   P.hp = P.hpLag = P.maxHp; P.st = P.maxSt; P.fp = P.maxFp; P.flasks = P.maxFlasks; P.fpFlasks = P.maxFpFlasks;
   P.state = 'free'; P.t = 0; P.status = { bleed: 0, rot: 0, poison: 0, frost: 0 }; P.rotT = 0; P.poisonT = 0; P.frostT = 0;
   G.inst = g.inst || null;
@@ -292,6 +294,7 @@ function tryBuffered(mv) {
   else if (b === 'heal') ok = startHeal();
   else if (b === 'fpheal') ok = startHeal('fp');
   else if (b === 'skill') ok = startSkill(mv);
+  else if (b === 'spell') ok = startCast(mv);
   if (ok) P.buffer = null;
   return ok;
 }
@@ -425,6 +428,9 @@ function updatePlayer(dt) {
   P.iframes = Math.max(0, P.iframes - dt);
   P.flash = Math.max(0, P.flash - dt);
   P.buffT = Math.max(0, P.buffT - dt);
+  updateBuffs(dt);
+  if (P.ddT > 0) { P.ddT -= dt; if (P.ddT <= 0) P.dd = 0; }
+  if (P.dd) P.hp = Math.min(P.hp, P.maxHp * (1 - P.dd));
   if (P.hpLag > P.hp) P.hpLag = Math.max(P.hp, P.hpLag - P.maxHp * 0.5 * dt * (P.iframes > 0 ? 0 : 1)); else P.hpLag = P.hp;
   const kb = Math.exp(-9 * dt);
   if (Math.abs(P.vx) + Math.abs(P.vy) > 1) { moveEnt(P, P.vx * dt, P.vy * dt); P.vx *= kb; P.vy *= kb; } else P.vx = P.vy = 0;
@@ -443,7 +449,9 @@ function updatePlayer(dt) {
   if (input.heal) { P.buffer = 'heal'; P.bufferT = 0.3; }
   if (input.fpheal) { P.buffer = 'fpheal'; P.bufferT = 0.3; }
   if (input.skill) { P.buffer = 'skill'; P.bufferT = 0.4; }
-  input.attack = input.heavy = input.roll = input.heal = input.fpheal = input.skill = false;
+  if (input.spell) { P.buffer = 'spell'; P.bufferT = 0.4; }
+  if (input.cycle) { input.cycle = false; cycleSpell(); }
+  input.attack = input.heavy = input.roll = input.heal = input.fpheal = input.skill = input.spell = false;
   if (input.lock) { input.lock = false; toggleLock(); }
   if (input.whistle) { input.whistle = false; whistle(); }
   if (input.ctx) { input.ctx = false; doContext(); }
@@ -488,6 +496,8 @@ function updatePlayer(dt) {
       break;
     }
     case 'skill': updateSkill(dt, mv); break;
+    case 'cast': updateCast(dt, mv); break;
+    case 'bell': if (P.t >= 0.6) P.state = 'free'; break;
     case 'roll': {
       const dur = P.backstep ? 0.32 : 0.48, k = P.t / dur;
       const spd = (P.backstep ? 260 : 360) * (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4);
@@ -495,6 +505,19 @@ function updatePlayer(dt) {
       if (Math.random() < 0.5) G.particles.push({ x: P.x + rand(-6, 6), y: P.y + 8, vx: rand(-15, 15), vy: rand(-20, 0), life: 0.45, max: 0.45, size: 4, col: 'rgba(110,98,76,0.5)', grav: 0 });
       if (P.lock) P.face += angDiff(P.face, angTo(P, P.lock)) * Math.min(1, dt * 12);
       if (P.t >= dur) { P.state = 'free'; tryBuffered(mv); }
+      break;
+    }
+    case 'held': {
+      const g = P.heldBy;
+      if (!g || g.dead || g.state === 'phase') { P.state = 'free'; P.air = 0; break; }
+      P.x = g.x + Math.cos(g.face) * (g.r + P.r - 4); P.y = g.y + Math.sin(g.face) * (g.r + P.r - 4);
+      P.air = Math.sin(clamp(P.t / 0.9, 0, 1) * Math.PI) * 0.9;
+      if (P.t >= 0.9) {
+        P.air = 0; P.state = 'free'; P.iframes = 0;
+        hurtPlayer(P.heldDmg, g.face, 260, g);
+        burst(P.x, P.y, 40, 'rgba(160,140,100,0.85)', 240, 0.7, 4); decal(P.x, P.y + 6, 40, 'rgba(20,16,12,0.5)');
+        sfx('slam'); shake(16);
+      }
       break;
     }
     case 'jump': {
@@ -525,7 +548,7 @@ function updatePlayer(dt) {
   for (const g of G.graces) {
     if (g.inst !== G.inst || g.found) continue;
     if (g.afterBoss && !G.defeated.has(g.afterBoss)) continue;
-    if (Math.abs(g.x - P.x) < 100 && Math.abs(g.y - P.y) < 100 && Math.hypot(g.x - P.x, g.y - P.y) < 90) { g.found = true; banner('LOST GRACE DISCOVERED', '#e9cf86', g.name, 3.4, 0.75, 'grace'); sfx('grace'); save(); }
+    if (Math.abs(g.x - P.x) < 100 && Math.abs(g.y - P.y) < 100 && Math.hypot(g.x - P.x, g.y - P.y) < 90) { g.found = true; banner('LOST GRACE DISCOVERED', '#e9cf86', g.name, 3.4, 0.75, 'grace'); sfx('grace'); setTimeout(() => checkGifts(false), 2600); save(); }
   }
   if (G.bloodstain && G.bloodstain.inst === G.inst && Math.hypot(G.bloodstain.x - P.x, G.bloodstain.y - P.y) < 26) {
     P.runes += G.bloodstain.runes; G.runeShow = 2;
@@ -594,6 +617,7 @@ function playerHitCheck(a) {
   }
 }
 function applyBleed(e, amt) {
+  if (e.state === 'phase' || e.shielded) return;
   e.bleed += amt;
   const cap = e.boss ? 160 : 100;
   if (e.bleed >= cap) {
@@ -608,6 +632,7 @@ function applyBleed(e, amt) {
   }
 }
 function applyFrost(e, amt) {
+  if (e.state === 'phase' || e.shielded) return;
   e.frost += amt;
   if (e.frost >= (e.boss ? 160 : 100)) {
     e.frost = 0; e.frostT = 12;
@@ -621,6 +646,13 @@ function guarding(e) {
   return e.def.guard && (e.state === 'chase' || e.state === 'idle') && Math.abs(angDiff(e.face, angTo(e, P))) < 1.1;
 }
 function damageEnemy(e, dmg, poise, ang, crit, heavy, el) {
+  if (e.state === 'phase' || e.hidden) return;
+  if (e.shielded) {
+    sparks(e.x + Math.cos(ang + Math.PI) * e.r * 1.6, e.y - 20 + Math.sin(ang + Math.PI) * e.r * 1.6, ang + Math.PI, 8, '#ffe08a');
+    sfx('clang'); G.hitstop = Math.max(G.hitstop, 0.03);
+    if (!e.shieldHint) { e.shieldHint = true; banner("The students' chanting shields her", '#cbd8ff', 'Silence the glowing students', 2.6, 0.45, 'small'); }
+    return;
+  }
   if (e.frostT > 0) dmg *= 1.2;
   if (guarding(e) && !crit) {
     dmg *= 0.22; poise *= heavy ? 1.3 : 0.5;
@@ -651,10 +683,12 @@ function damageEnemy(e, dmg, poise, ang, crit, heavy, el) {
 }
 function killEnemy(e) {
   if (e.dead) return;
+  if (e.boss && e.def.phase2 && e.def.phase2.fresh && !e.phase2) { e.hp = 1; if (!e.phasing) startPhase2(e); return; }
   e.dead = true; e.deathT = 0; e.hp = 0;
   P.runes += e.runes; G.runeShow = 2;
   burst(e.x, e.y - 10, e.boss ? 140 : 30, '#e7c46a', e.boss ? 260 : 120, e.boss ? 2 : 1, 3, 0, true);
   if (P.lock === e) P.lock = null;
+  for (const o of G.enemies) if (o.owner === e && !o.dead) dissolve(o);
   if (!e.boss) return;
   const mates = G.all.filter((o) => o.key === e.key);
   if (e.key && mates.every((o) => o.dead)) {
@@ -680,6 +714,7 @@ function killEnemy(e) {
       setTimeout(() => { banner(o.def.rune.toUpperCase(), '#ffe8a0', 'Great Rune obtained (' + P.greatRunes.length + ')', 4, 0.6, 'small'); sfx('item'); }, delay);
       delay += 1800;
     }
+    setTimeout(() => checkGifts(false), delay); delay += 1800;
     if (e.def.final) setTimeout(() => { banner('ELDEN LORD', '#ffe8a0', 'You have mended the Elden Ring. Thank you for playing.', 9, 1.1, 'big'); sfx('felled'); }, delay + 400);
     save();
   }
@@ -689,6 +724,7 @@ function killEnemy(e) {
 function hurtPlayer(dmg, srcAng, push = 140, src = null, el = null, status = null) {
   if (P.state === 'dead' || isInvuln()) return false;
   if (P.frostT > 0) dmg *= 1.15;
+  dmg *= buffDef();
   P.hp -= dmg; P.flash = 0.2; P.iframes = 0.45;
   dmgNumber(P.x, P.y - 14, dmg, '#ff6a5a');
   shake(7); sfx('hurt'); vibrate(40);
@@ -697,6 +733,10 @@ function hurtPlayer(dmg, srcAng, push = 140, src = null, el = null, status = nul
   P.vx = Math.cos(srcAng) * push; P.vy = Math.sin(srcAng) * push;
   const st = status || (el && EL[el] && EL[el].status);
   if (st) statusBuild(st, 34);
+  if (el === 'death') {
+    if (!P.dd) banner('DESTINED DEATH', '#c83250', 'Max HP reduced for a while', 1.8, 0.45, 'small');
+    P.dd = Math.min(0.45, (P.dd || 0) + (dmg / P.maxHp) * 0.6); P.ddT = 35;
+  }
   if (src && src.def.lifesteal) { src.hp = Math.min(src.maxHp, src.hp + dmg * src.def.lifesteal * 3); burst(src.x, src.y - 20, 10, '#ffd0a0', 80, 0.5, 2, 0, true); }
   if (P.hp <= 0) { playerDie(); return true; }
   if (P.mounted && dmg > P.maxHp * 0.18) { P.mounted = false; banner('Thrown from Torrent', '#bba', '', 1.4, 0.45, 'small'); }
@@ -707,7 +747,7 @@ function hurtPlayer(dmg, srcAng, push = 140, src = null, el = null, status = nul
 }
 function playerDie() {
   if (P.state === 'dead') return;
-  P.hp = 0; P.state = 'dead'; P.t = 0; P.lock = null; P.mounted = false;
+  P.hp = 0; P.state = 'dead'; P.t = 0; P.lock = null; P.mounted = false; P.buffs = []; clearAllies();
   G.deadT = 0; G.arenaFight = null; G.arenaRect = null; G.arenaCirc = null; stopDrone();
   G.bloodstain = P.runes > 0 ? { x: P.x, y: P.y, runes: P.runes, inst: G.inst } : null;
   P.runes = 0;
@@ -751,10 +791,12 @@ function computeContext() {
       if (Math.abs(P.y - (f.y + f.h / 2)) < 70 && left > 0 && left < 60) { G.ctxAction = { kind: 'fog', fog: f, label: 'Traverse the fog' }; return; }
     }
   }
+  if (canSummon()) G.ctxAction = { kind: 'summon', label: 'Summon ' + ASHES[P.ash].name };
 }
 function doContext() {
   const c = G.ctxAction; if (!c || (P.state !== 'free' && P.state !== 'heal')) return;
   if (c.kind === 'rest') openGrace(c.idx);
+  else if (c.kind === 'summon') summonSpirit();
   else if (c.kind === 'item') {
     const it = c.item;
     G.taken.add(it.id);
@@ -763,6 +805,8 @@ function doContext() {
     if (it.seed) { P.seeds++; recalcStats(); P.flasks = Math.min(P.maxFlasks, P.flasks + 1); banner('Golden Seed', '#e9cf86', 'Flask charges +1', 3, 0.55, 'small'); }
     if (it.runes) { P.runes += it.runes; G.runeShow = 2; banner('Golden Rune', '#e9cf86', '+' + it.runes + ' runes', 2.5, 0.55, 'small'); }
     if (it.medallion) banner(it.label, '#e9cf86', 'Key item', 3, 0.55, 'small');
+    if (it.staff && !P.staff) { P.staff = true; banner("Astrologer's Staff", '#9ab0ff', 'Lets you cast sorceries', 3, 0.55, 'small'); }
+    if (it.spell) setTimeout(() => learnSpell(it.spell), it.staff ? 1800 : 0);
     save();
   } else if (c.kind === 'dungeon') {
     if (!reqOk(c.d.req)) { banner(c.d.req.msg, '#cbb98a', '', 3.4, 0.4, 'small'); sfx('empty'); return; }
@@ -804,9 +848,9 @@ function chooseAttack(e, d) {
   const opts = [];
   let total = 0;
   for (const [n, a] of Object.entries(e.def.atks)) {
-    if (!a.w || (a.p2 && !e.phase2)) continue;
+    if (!a.w || (a.p2 && !e.phase2) || (a.p1 && e.phase2)) continue;
     if (d < (a.min || 0) || d > a.max) continue;
-    const w = a.w * (n === e.lastAtk ? 0.35 : 1) * (e.phase2 && a.p2 ? 1.6 : 1);
+    const w = a.w * (n === e.lastAtk ? 0.35 : 1) * (e.phase2 && a.p2 ? 1.4 : 1);
     opts.push([n, w]); total += w;
   }
   if (!opts.length) return null;
@@ -815,12 +859,12 @@ function chooseAttack(e, d) {
   return opts[opts.length - 1][0];
 }
 function enemyHit(e, dmg, ang, a) {
-  if (hurtPlayer(dmg * e.dmgMul * (e.phase2 ? 1.1 : 1) * rand(0.95, 1.05), ang, e.boss ? 200 : 140, e, a && a.el, a && a.status)) e.hitDone = true;
+  if (hurtPlayer(dmg * e.dmgMul * rand(0.95, 1.05), ang, e.boss ? 200 : 140, e, a && a.el, a && a.status)) e.hitDone = true;
 }
 function addRing(x, y, o) {
   G.rings.push({ x, y, r: o.r0 || 16, maxR: o.maxR || 160, spd: o.spd || 300, th: o.th || 15, dmg: o.dmg || 0, push: o.push || 160, hit: false, col: o.col || '230,200,140', delay: o.delay || 0, fx: !!o.fx, el: o.el });
 }
-const windMul = (e) => (e.phase2 ? 0.88 : 1);
+const windMul = (e) => 1 / (e.phSpeed || 1);
 
 function updateEnemy(e, dt) {
   if (e.dead) { e.deathT += dt; return; }
@@ -838,19 +882,21 @@ function updateEnemy(e, dt) {
   if (e.def.look && e.def.look.kind === 'serpent') { e.trail.unshift({ x: e.x, y: e.y }); if (e.trail.length > 40) e.trail.pop(); }
 
   const toP = Math.atan2(P.y - e.y, P.x - e.x);
-  const spdMul = e.phase2 ? 1.2 : 1;
+  if (e.tgt && (e.tgt.hp <= 0 || !G.allies.includes(e.tgt) || Math.random() < dt * 0.12)) e.tgt = null;
+  const T = e.tgt || P, toT = T === P ? toP : Math.atan2(T.y - e.y, T.x - e.x), dT = T === P ? d : Math.hypot(T.x - e.x, T.y - e.y);
+  e.aimX = T.x; e.aimY = T.y; e.aimA = toT;
+  const spdMul = e.phSpeed || 1;
   const playerAlive = P.state !== 'dead';
   const def = e.def;
 
-  if (def.p2 && !e.phase2 && e.hp < e.maxHp * def.p2 && (e.state === 'chase' || (e.state === 'stagger' && e.t > 1.2))) {
-    e.phase2 = true; e.atk = null; e.poise = e.maxPoise;
-    if (def.p2name) e.name = def.p2name;
-    if (def.p2roar) { e.state = 'roar'; e.t = 0; sfx('roar'); shake(12); }
-    else { sfx('glint'); sfx('item'); burst(e.x, e.y - 20, 60, '#ffe08a', 220, 1, 3, 0, true); }
-  }
+  if (def.p2 && !e.phase2 && !e.phasing && e.hp < e.maxHp * def.p2 && (e.state === 'chase' || e.state === 'recover' || (e.state === 'stagger' && e.t > 1.2))) startPhase2(e);
+  if (e.lifeT !== undefined) { e.lifeT -= dt; if (e.lifeT <= 0 || (e.owner && e.owner.dead)) { dissolve(e); return; } }
+  if (def.students && !e.phase2 && !e.phasing && !['idle', 'dormant', 'intro'].includes(e.state)) updateStudents(e, dt);
+  if (def.escort && !e.escorted && ['chase', 'windup', 'active'].includes(e.state)) { e.escorted = true; def.escort.forEach((t, i) => spawnAdd(e, t, i, def.escort.length, {})); }
 
   switch (e.state) {
     case 'dormant': return;
+    case 'phase': updatePhase(e, dt, toP); return;
     case 'intro':
       e.face = toP;
       if (e.t > 1.2) { e.state = 'chase'; e.t = 0; e.cd = 0.4; }
@@ -870,7 +916,7 @@ function updateEnemy(e, dt) {
         e.face += angDiff(e.face, a) * Math.min(1, dt * 3);
         moveEnt(e, Math.cos(a) * 40 * dt, Math.sin(a) * 40 * dt); e.walk += dt * 2.5;
       }
-      const calm = G.safe || (!e.boss && G.bossBusy);
+      const calm = G.safe || (!e.boss && !e.summoned && G.bossBusy);
       if (playerAlive && !calm && d < def.aggro * (P.mounted ? 1.15 : 1)) {
         e.state = 'chase'; e.t = 0;
         if (e.boss && !e.inst) { startDrone(e.def.drone || 60); if (def.mount) sfx('neigh'); fieldArena(e); }
@@ -889,58 +935,59 @@ function updateEnemy(e, dt) {
       if (e.t > 0.25) { e.state = 'chase'; e.t = 0; }
       return;
     case 'stagger':
-      if (e.t > (e.boss ? 2.2 : 1.1)) { e.state = 'chase'; e.t = 0; e.cd = 0.1; }
+      if (e.t > (e.stagLen || (e.boss ? 2.2 : 1.1))) { e.state = 'chase'; e.t = 0; e.cd = 0.1; e.stagLen = 0; }
       return;
     case 'chase': {
       if (!playerAlive) { if (!e.inst || !e.boss) { e.state = 'return'; e.t = 0; } return; }
       // regular foes back off during boss fights; nothing chases you onto a Site of Grace
-      if ((!e.boss && G.bossBusy) || (G.safe && G.arenaFight !== e.key)) { e.state = 'return'; e.t = 0; e.atk = null; return; }
+      if ((!e.boss && !e.summoned && G.bossBusy) || (G.safe && G.arenaFight !== e.key)) { e.state = 'return'; e.t = 0; e.atk = null; return; }
       const leash = e.boss ? 1000 : 600;
       if (G.arenaFight !== e.key || !e.key) {
         if (Math.hypot(e.home.x - e.x, e.home.y - e.y) > leash) { e.state = 'return'; e.t = 0; return; }
       }
-      e.face += angDiff(e.face, toP) * Math.min(1, dt * 7);
+      e.face += angDiff(e.face, toT) * Math.min(1, dt * 7);
       e.cd -= dt;
       if (e.cd <= 0) {
-        const n = chooseAttack(e, d);
+        const n = chooseAttack(e, dT);
         if (n) { enemyStartAttack(e, n); return; }
       }
       const spd = def.speed * spdMul;
       if (spd <= 0) return;
       if (def.ranged) {
         let mvA, s = spd;
-        if (d < def.ranged.flee) mvA = toP + Math.PI;
-        else if (d > def.ranged.keep + 60) mvA = toP;
-        else { e.strafeT -= dt; if (e.strafeT <= 0) { e.strafe *= -1; e.strafeT = rand(1, 2.5); } mvA = toP + (Math.PI / 2) * e.strafe; s *= 0.5; }
+        if (dT < def.ranged.flee) mvA = toT + Math.PI;
+        else if (dT > def.ranged.keep + 60) mvA = toT;
+        else { e.strafeT -= dt; if (e.strafeT <= 0) { e.strafe *= -1; e.strafeT = rand(1, 2.5); } mvA = toT + (Math.PI / 2) * e.strafe; s *= 0.5; }
         moveEnt(e, Math.cos(mvA) * s * dt, Math.sin(mvA) * s * dt); e.walk += dt * 6;
         return;
       }
       const keep = e.boss ? Math.max(50, e.r * 1.6) : def.look && def.look.kind === 'quad' ? 46 : 38;
-      if (d > keep + e.r) moveEnt(e, Math.cos(toP) * spd * dt, Math.sin(toP) * spd * dt);
+      if (dT > keep + e.r + (T === P ? 0 : T.r)) moveEnt(e, Math.cos(toT) * spd * dt, Math.sin(toT) * spd * dt);
       else {
         e.strafeT -= dt;
         if (e.strafeT <= 0) { e.strafe *= -1; e.strafeT = rand(0.8, 2.2); }
-        const sa = toP + (Math.PI / 2) * e.strafe;
+        const sa = toT + (Math.PI / 2) * e.strafe;
         moveEnt(e, Math.cos(sa) * spd * 0.45 * dt, Math.sin(sa) * spd * 0.45 * dt);
       }
       e.walk += dt * (spd / 14);
       return;
     }
     case 'windup': {
-      if (!e.boss && G.bossBusy) { e.state = 'return'; e.t = 0; e.atk = null; return; }
+      if (!e.boss && !e.summoned && G.bossBusy) { e.state = 'return'; e.t = 0; e.atk = null; return; }
       const a = e.atk;
-      if (a.track) e.face += angDiff(e.face, toP) * Math.min(1, dt * a.track);
+      if (a.track) e.face += angDiff(e.face, toT) * Math.min(1, dt * a.track);
       if (a.glint && !e.glinted && e.t >= a.glint * windMul(e)) { e.glinted = true; sfx('glint'); }
-      if (a.kind === 'leap') e.leapTo = { x: P.x, y: P.y };
+      if (a.kind === 'leap') e.leapTo = { x: T.x, y: T.y };
       if (a.kind === 'beam') e.beamA = e.face;
       if (e.t >= a.wind * windMul(e)) {
-        e.state = 'active'; e.t = 0; e.hitDone = false; e.tick = 0;
+        e.state = 'active'; e.t = 0; e.hitDone = false; e.tick = 0; if (e.allyHits) e.allyHits.clear();
         if (a.lunge && e.def.speed > 0) { e.vx += Math.cos(e.face) * a.lunge; e.vy += Math.sin(e.face) * a.lunge; }
         startActive(e, a, toP);
       }
       return;
     }
     case 'active': {
+      if (G.allies.length) hitAllies(e, e.atk, dt);
       updateActive(e, e.atk, dt, d, toP);
       if (e.state === 'active' && e.t >= e.atk.act) { e.state = 'recover'; e.t = 0; e.air = 0; }
       return;
@@ -950,7 +997,7 @@ function updateEnemy(e, dt) {
       if (e.t >= a.rec * windMul(e)) {
         const nx = a.next && def.atks[a.next];
         if (nx && (!nx.p2 || e.phase2) && Math.random() < (a.chain || 0) && playerAlive) enemyStartAttack(e, a.next);
-        else { e.state = 'chase'; e.t = 0; e.cd = e.boss ? rand(0.15, e.phase2 ? 0.45 : 0.8) : rand(0.5, 1.5); e.atk = null; }
+        else { e.state = 'chase'; e.t = 0; e.cd = e.boss ? rand(0.15, 0.8) / (e.phSpeed || 1) : rand(0.5, 1.5); e.atk = null; }
       }
       return;
     }
@@ -967,14 +1014,14 @@ function startActive(e, a, toP) {
     G.projectiles.push({ type: 'arrow', x: e.x + Math.cos(e.face) * 16, y: e.y - 12 + Math.sin(e.face) * 16, vx: Math.cos(e.face) * a.spd, vy: Math.sin(e.face) * a.spd, r: 5, dmg: a.dmg * e.dmgMul, life: 1.4, el: a.el });
     sfx('arrow');
   } else if (kind === 'volley') {
-    const n = a.n + (e.phase2 ? 2 : 0);
+    const n = a.n;
     for (let i = 0; i < n; i++) {
       const oa = e.face + (i - (n - 1) / 2) * a.spread;
       G.projectiles.push({ type: 'orb', x: e.x + Math.cos(oa) * (e.r + 8), y: e.y - 14 + Math.sin(oa) * (e.r + 8), vx: Math.cos(oa) * a.spd, vy: Math.sin(oa) * a.spd, r: a.pr || 8, dmg: a.dmg * e.dmgMul, life: 3, homing: a.homing, el: a.el, status: a.status, src: e });
     }
     sfx('orb');
   } else if (kind === 'daggers') {
-    const n = a.n + (e.phase2 ? 2 : 0);
+    const n = a.n;
     for (let i = 0; i < n; i++) {
       const off = (i - (n - 1) / 2) * 26;
       G.projectiles.push({ type: 'dagger', owner: e, ox: Math.cos(e.face + Math.PI / 2) * off, oy: Math.sin(e.face + Math.PI / 2) * off - 34, x: e.x, y: e.y - 30, vx: 0, vy: 0, r: 6, dmg: a.dmg * e.dmgMul, life: 3, hover: 0.3 + i * 0.16, ang: toP, el: a.el });
@@ -983,9 +1030,9 @@ function startActive(e, a, toP) {
   } else if (kind === 'stomps') {
     for (let i = 0; i < a.n; i++) addRing(e.x, e.y, { r0: 20, maxR: a.maxR + i * 30, spd: 330, th: 16, dmg: a.dmg * e.dmgMul, push: 170, col: a.el ? col : '220,190,140', delay: i * 0.32, fx: true, el: a.el });
   } else if (kind === 'strikes') {
-    const n = a.n + (e.phase2 ? 2 : 0);
+    const n = a.n;
     for (let i = 0; i < n; i++) {
-      const px = i === 0 ? P.x : P.x + rand(-a.spread, a.spread), py = i === 0 ? P.y : P.y + rand(-a.spread, a.spread);
+      const tx = e.aimX ?? P.x, ty = e.aimY ?? P.y, px = i === 0 ? tx : tx + rand(-a.spread, a.spread), py = i === 0 ? ty : ty + rand(-a.spread, a.spread);
       G.strikes.push({ x: px, y: py, r: a.rad, t: a.delay + i * 0.12, max: a.delay + i * 0.12, dmg: a.dmg * e.dmgMul, el: a.el, status: a.status, boom: 0 });
     }
     sfx('glint');
@@ -995,7 +1042,7 @@ function startActive(e, a, toP) {
     sfx('slam'); shake(a.shake || 10);
   } else if (kind === 'pool') {
     for (let i = 0; i < a.n; i++) {
-      const px = i === 0 ? P.x : P.x + rand(-140, 140), py = i === 0 ? P.y : P.y + rand(-140, 140);
+      const tx = e.aimX ?? P.x, ty = e.aimY ?? P.y, px = i === 0 ? tx : tx + rand(-140, 140), py = i === 0 ? ty : ty + rand(-140, 140);
       G.pools.push({ x: px, y: py, r: a.rad, life: a.life, max: a.life, el: a.el, dps: a.dmg * e.dmgMul, status: a.status || (EL[a.el] && EL[a.el].status), tick: 0.6, grow: 0 });
     }
     sfx('orb');
@@ -1007,6 +1054,12 @@ function startActive(e, a, toP) {
     e.face = Math.atan2(P.y - e.y, P.x - e.x);
     burst(e.x, e.y - 10, 24, a.el ? elHex(a.el) : '#c8c8ff', 160, 0.6, 3, 0, true);
     sfx('dagger');
+  } else if (kind === 'adds') {
+    if (!G.enemies.some((o) => o.owner === e && o.spirit && !o.dead)) {
+      const grp = pick(a.types);
+      grp.forEach((t, i) => spawnAdd(e, t, i, grp.length, { spirit: true, life: a.life }));
+      burst(e.x, e.y - 20, 40, '#a8c8ff', 180, 0.9, 3, 0, true); sfx('orb');
+    }
   } else if (kind === 'breath') sfx('breath');
   else if (kind === 'beam') sfx('orb');
   else if (kind !== 'circle' && kind !== 'spin') sfx(e.boss || (e.def.look && e.def.look.kind === 'troll') ? 'heavy' : 'enemySwing');
@@ -1059,12 +1112,12 @@ function updateActive(e, a, dt, d, toP) {
   } else if (kind === 'spin') {
     e.tick -= dt;
     if (e.tick <= 0) { e.tick = 0.26; e.hitDone = false; }
-    moveEnt(e, Math.cos(toP) * (a.chase || 70) * dt, Math.sin(toP) * (a.chase || 70) * dt);
+    moveEnt(e, Math.cos(e.aimA) * (a.chase || 70) * dt, Math.sin(e.aimA) * (a.chase || 70) * dt);
     e.face += dt * 14;
     if (!e.hitDone && d < a.rad + P.r * 0.4) enemyHit(e, a.dmg, toP, a);
     if (Math.random() < 0.8) { const ang = rand(0, TAU); G.particles.push({ x: e.x + Math.cos(ang) * a.rad, y: e.y + Math.sin(ang) * a.rad * 0.7, vx: -Math.sin(ang) * 200, vy: Math.cos(ang) * 140, life: 0.3, max: 0.3, size: 2, col: a.el ? elHex(a.el) : 'rgba(220,220,230,0.6)', grav: 0, streak: true }); }
   } else if (kind === 'breath') {
-    e.face += angDiff(e.face, toP) * Math.min(1, dt * a.track);
+    e.face += angDiff(e.face, e.aimA) * Math.min(1, dt * a.track);
     const mx = e.x + Math.cos(e.face) * e.r * 1.2, my = e.y - 18 + Math.sin(e.face) * e.r * 1.0;
     const cols = { fire: ['#ff7a2a', '#ffb347', '#ffd27a'], frost: ['#dff4ff', '#a8d8ff', '#ffffff'], magic: ['#8ab8ff', '#c0d8ff', '#6a90ff'], rot: ['#e05a2a', '#c04020', '#ff8040'], poison: ['#8ac050', '#a0d060', '#6a9a3a'], redlightning: ['#ff5040', '#ff9080', '#ffd0c0'] }[a.el] || ['#ff7a2a', '#ffb347'];
     for (let i = 0; i < 12; i++) {
@@ -1080,15 +1133,22 @@ function updateActive(e, a, dt, d, toP) {
   } else if (kind === 'beam') {
     const k = clamp(e.t / a.act, 0, 1);
     e.face = e.beamA + (a.sweep ? (k - 0.5) * 2 * a.sweep : 0);
-    if (!a.sweep) { e.beamA += angDiff(e.beamA, toP) * Math.min(1, dt * a.track); e.face = e.beamA; }
+    if (!a.sweep) { e.beamA += angDiff(e.beamA, e.aimA) * Math.min(1, dt * a.track); e.face = e.beamA; }
     e.tick -= dt;
     if (e.tick <= 0) {
       e.tick = 0.18;
       const bx = e.x + Math.cos(e.face) * a.len, by = e.y + Math.sin(e.face) * a.len;
       if (segDist(P.x, P.y, e.x, e.y, bx, by) < a.width / 2 + P.r * 0.4) hurtPlayer(a.dmg * e.dmgMul, e.face, 100, e, a.el, a.status);
     }
+  } else if (kind === 'adds') {
+    // handled once in startActive
   } else if (a.range && !e.hitDone) {
-    if (d < a.range + P.r && Math.abs(angDiff(e.face, toP)) < a.arc / 2 + 0.15) enemyHit(e, a.dmg, e.face, a);
+    if (d < a.range + P.r && Math.abs(angDiff(e.face, toP)) < a.arc / 2 + 0.15) {
+      if (a.grab) {
+        e.hitDone = true;
+        if (!isInvuln() && P.state !== 'dead' && P.state !== 'held') { P.state = 'held'; P.t = 0; P.heldBy = e; P.heldDmg = a.dmg * e.dmgMul; P.mounted = false; P.lock = null; sfx('heavy'); shake(6); }
+      } else enemyHit(e, a.dmg, e.face, a);
+    }
   }
 }
 
@@ -1143,6 +1203,7 @@ function updateHazards(dt) {
       if (!dead && Math.hypot(P.x - p.x, P.y - 10 - p.y) < p.r + P.r) {
         if (hurtPlayer(p.dmg, Math.atan2(p.vy, p.vx), 110, p.src, p.el, p.status)) dead = true;
       }
+      if (!dead && G.allies.length) { const al = allyAt(p.x, p.y + 10, p.r); if (al) { allyHurt(al, p.dmg, Math.atan2(p.vy, p.vx)); dead = true; } }
     }
     if (dead) {
       if (p.type !== 'arrow') burst(p.x, p.y, 10, elHex(p.el || 'holy'), 90, 0.4, 2.5, 0, true);
@@ -1153,15 +1214,22 @@ function updateHazards(dt) {
   // player projectiles (skill waves)
   for (let i = G.pproj.length - 1; i >= 0; i--) {
     const p = G.pproj[i];
+    if (p.homing) {
+      const tg = P.lock && targetable(P.lock) && !p.ally ? P.lock : G.enemies.filter((e) => targetable(e) && !e.hidden && Math.hypot(e.x - p.x, e.y - p.y) < 500).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
+      if (tg) { const want = Math.atan2(tg.y - 10 - p.y, tg.x - p.x), cur = Math.atan2(p.vy, p.vx), sp = Math.hypot(p.vx, p.vy), na = cur + clamp(angDiff(cur, want), -p.homing * dt, p.homing * dt); p.vx = Math.cos(na) * sp; p.vy = Math.sin(na) * sp; p.ang = na; }
+    }
     p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
     if (Math.random() < 0.8) G.particles.push({ x: p.x + rand(-p.r, p.r) * 0.5, y: p.y + rand(-p.r, p.r) * 0.5, vx: 0, vy: 0, life: 0.3, max: 0.3, size: 3, col: elHex(p.el), grav: 0, glow: true });
     for (const e of G.enemies) {
       if (!targetable(e) || p.hit.has(e)) continue;
       if (Math.hypot(e.x - p.x, e.y - 10 - p.y) < e.r + p.r) {
         p.hit.add(e);
-        damageEnemy(e, p.dmg * dmgMult(), 30, Math.atan2(p.vy, p.vx), e.state === 'stagger', true, p.el);
+        if (p.ally) allyDamage(p, e, p.dmg, p.el);
+        else damageEnemy(e, p.fixed ? p.dmg : p.dmg * dmgMult(), 30, Math.atan2(p.vy, p.vx), e.state === 'stagger', true, p.el);
         if (p.ls) P.hp = Math.min(P.maxHp, P.hp + p.dmg * p.ls);
-        if (weapon().frost) applyFrost(e, weapon().frost);
+        if (!p.fixed && weapon().frost) applyFrost(e, weapon().frost);
+        if (p.burn) e.burnT = p.burn;
+        if (p.orb && !p.big) p.life = 0;
       }
     }
     if (p.life <= 0 || pointBlocked(p.x, p.y + 12)) G.pproj.splice(i, 1);
@@ -1187,6 +1255,10 @@ function updateHazards(dt) {
         else if (P.state !== 'dead') { P.vx += Math.cos(a) * r.push; P.vy += Math.sin(a) * r.push; r.hit = true; }
       }
     }
+    if (!r.player && r.dmg > 0 && G.allies.length) for (const al of G.allies) {
+      if (!r.allyHit) r.allyHit = new Set();
+      if (!r.allyHit.has(al) && Math.abs(Math.hypot(al.x - r.x, al.y - r.y) - r.r) < r.th / 2 + al.r * 0.6) { r.allyHit.add(al); allyHurt(al, r.dmg, Math.atan2(al.y - r.y, al.x - r.x)); }
+    }
     if (r.r >= r.maxR) G.rings.splice(i, 1);
   }
   for (let i = G.strikes.length - 1; i >= 0; i--) {
@@ -1196,6 +1268,7 @@ function updateHazards(dt) {
       if (s.t <= 0) {
         s.boom = 0.35;
         if (Math.hypot(P.x - s.x, P.y - s.y) < s.r + P.r * 0.4) hurtPlayer(s.dmg, Math.atan2(P.y - s.y, P.x - s.x), 120, null, s.el, s.status);
+        for (const al of G.allies) if (Math.hypot(al.x - s.x, al.y - s.y) < s.r + al.r * 0.4) allyHurt(al, s.dmg, Math.atan2(al.y - s.y, al.x - s.x));
         burst(s.x, s.y, 26, elHex(s.el), 220, 0.6, 3.5, 0, true);
         sfx(s.el === 'lightning' || s.el === 'redlightning' ? 'clang' : 'slam'); shake(5);
       }
@@ -1207,6 +1280,7 @@ function updateHazards(dt) {
     p.tick -= dt;
     if (p.tick <= 0) {
       p.tick = 0.5;
+      for (const al of G.allies) if (Math.hypot(al.x - p.x, al.y - p.y) < p.r * p.grow) allyHurt(al, p.dps * 0.5, 0);
       if (Math.hypot(P.x - p.x, P.y - p.y) < p.r * p.grow && P.air <= 0 && !isInvuln()) {
         P.hp -= p.dps * 0.5; P.flash = 0.08; dmgNumber(P.x, P.y - 14, p.dps * 0.5, '#ff9a7a');
         if (p.status) statusBuild(p.status, 14);
@@ -1233,6 +1307,7 @@ function update(dt) {
   G.bossBusy = !!G.arenaFight || G.activeBosses.length > 0;
   G.safe = G.graces.some((g) => g.inst === G.inst && g.found && !(g.afterBoss && !G.defeated.has(g.afterBoss)) && Math.abs(g.x - P.x) < 450 && Math.hypot(g.x - P.x, g.y - P.y) < 450);
   for (const e of G.enemies) updateEnemy(e, dt);
+  updateAllies(dt);
   separate();
   updateHazards(dt);
   if (G.arenaFight && G.arenaRect) {
@@ -1264,12 +1339,6 @@ function update(dt) {
 
   // engaged bosses (health bars + music)
   G.activeBosses = G.enemies.filter((e) => e.boss && !e.dead && !['idle', 'dormant', 'return'].includes(e.state) && dist(e, P) < 1100).slice(0, 3);
-  for (const e of G.activeBosses) {
-    if (e.phase2 && Math.random() < 0.7) {
-      const col = e.def.el ? [elHex(e.def.el), '#ffffff'] : ['#ff8a3a', '#ffbb55', '#ff5a1a'];
-      G.particles.push({ x: e.x + rand(-20, 20), y: e.y + rand(-14, 8), vx: rand(-10, 10), vy: rand(-90, -40), life: rand(0.3, 0.7), max: 0.7, size: rand(2, 5), col: pick(col), grav: 0, glow: true });
-    }
-  }
   if (G.activeBosses.length) {
     G.drumT -= dt;
     if (G.drumT <= 0) { G.drumT = G.activeBosses[0].phase2 ? 0.55 : 0.8; if (AU.ctx && AU.on) tone('sine', 65, 40, 0.25, 0.25); }

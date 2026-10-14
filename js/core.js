@@ -108,12 +108,12 @@ const G = {
   particles: [], decals: [], numbers: [], banners: [], motes: [], rain: [],
   graces: [], graceIdx: 0, items: [], defeated: new Set(), defeatedTypes: new Set(), taken: new Set(), bloodstain: null,
   inst: null, returnPoint: null, deadT: 0, ctxAction: null, runeShow: 0, zone: '', locName: '', drumT: 0,
-  activeBosses: [], arenaFight: null, arenaRect: null, amb: null, menuOpenedAt: 0,
+  activeBosses: [], allies: [], summonUsed: null, arenaFight: null, arenaRect: null, amb: null, menuOpenedAt: 0,
 };
 const cam = { x: 0, y: 0 };
 const P = {
   x: 0, y: 0, r: 12, face: -Math.PI / 2, vx: 0, vy: 0, air: 0,
-  hp: 0, maxHp: 0, hpLag: 0, st: 0, maxSt: 0, stDelay: 0, fp: 0, maxFp: 0, flasks: 4, maxFlasks: 4, seeds: 0, fpFlasks: 1, maxFpFlasks: 1, cerulean: 1, healKind: 'hp', totalFlasks: 5,
+  hp: 0, maxHp: 0, hpLag: 0, st: 0, maxSt: 0, stDelay: 0, fp: 0, maxFp: 0, flasks: 4, maxFlasks: 4, seeds: 0, seal: true, staff: false, spells: ['heal'], memory: ['heal'], spellIdx: 0, ashes: [], ash: null, bell: false, buffs: [], cast: null, dd: 0, ddT: 0, fpFlasks: 1, maxFpFlasks: 1, cerulean: 1, healKind: 'hp', totalFlasks: 5,
   vig: 10, mnd: 10, end: 10, str: 10, runes: 0, greatRunes: [],
   weapon: 'longsword', owned: ['longsword'], wlv: {},
   state: 'free', t: 0, atk: null, atkEl: null, skill: null, combo: 0, buffer: null, bufferT: 0, hitSet: null, swung: false,

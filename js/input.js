@@ -2,7 +2,7 @@
 /* Input: touch joystick + buttons, keyboard, mouse. */
 
 const keys = new Set();
-const input = { attack: false, heavy: false, roll: false, heal: false, fpheal: false, lock: false, ctx: false, skill: false, whistle: false };
+const input = { attack: false, heavy: false, roll: false, heal: false, fpheal: false, spell: false, cycle: false, lock: false, ctx: false, skill: false, whistle: false };
 let spaceDown = 0;
 const joy = { id: null, bx: 0, by: 0, x: 0, y: 0, R: 60 };
 const buttons = [];
@@ -15,6 +15,8 @@ const B = {
   fpheal: btn('fpheal', 'FP', { onDown: () => (input.fpheal = true) }),
   lock: btn('lock', 'LOCK', { onDown: () => (input.lock = true) }),
   skill: btn('skill', 'SKILL', { onDown: () => (input.skill = true) }),
+  spell: btn('spell', 'SPELL', { visible: () => P.memory.length > 0, onDown: () => (input.spell = true) }),
+  cycle: btn('cycle', '', { visible: () => P.memory.length > 1, onDown: () => (input.cycle = true) }),
   whistle: btn('whistle', 'TORRENT', { small: true, onDown: () => (input.whistle = true) }),
   map: btn('map', 'MAP', { small: true, onDown: () => openMap() }),
   ctx: btn('ctx', '', { pill: true, visible: () => !!G.ctxAction, onDown: () => (input.ctx = true) }),
@@ -42,6 +44,8 @@ function layoutButtons() {
   Object.assign(B.fpheal, { x: ax - R * 3.9, y: ay - R * 1.25, r: R * 0.6 });
   Object.assign(B.lock, { x: ax + R * 0.35, y: ay - R * 4.3, r: R * 0.6 });
   Object.assign(B.ctx, { x: W / 2, y: H * 0.62, r: R * 0.75 });
+  Object.assign(B.spell, { x: ax - R * 3.6, y: ay - R * 3.35, r: R * 0.62 });
+  Object.assign(B.cycle, { x: ax - R * 4.5, y: ay - R * 4.0, r: R * 0.36 });
   Object.assign(B.skill, { x: ax - R * 1.95, y: ay - R * 4.15, r: R * 0.66 });
   Object.assign(B.pause, { x: W - 26 - SAFE.r, y: 26 + SAFE.t, r: 20 });
   Object.assign(B.map, { x: W - 74 - SAFE.r, y: 26 + SAFE.t, r: 20 });
@@ -115,6 +119,8 @@ window.addEventListener('keydown', (e) => {
   if (k === 'KeyF' || k === 'Enter') input.ctx = true;
   if (k === 'KeyL' || k === 'KeyU') input.skill = true;
   if (k === 'KeyT') input.whistle = true;
+  if (k === 'KeyC') input.spell = true;
+  if (k === 'KeyV') input.cycle = true;
   if (k === 'KeyM') openMap();
   if (k === 'Space') spaceDown = performance.now();
 });

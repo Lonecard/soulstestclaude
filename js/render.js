@@ -440,6 +440,7 @@ function drawPlayer() {
     pose = { ang: spin, ext: 0, phase: 'active', trail: { a0: spin - 1.4, len: w.len + 6, col: elc(P.skill.el) } };
   } else if (P.state === 'roll') pose = { ang: P.rollDir + 2.2, ext: 0 };
   else if (P.state === 'heal') pose = { ang: P.face + 1.6, ext: 0 };
+  else if (P.state === 'cast' || P.state === 'bell') pose = { ang: P.face + 0.4, ext: 0 };
   else pose = { ang: P.face + (['great', 'colossal', 'halberd'].includes(w.style) ? 1.4 : 1.0), ext: 0 };
   const twoHanded = ['great', 'colossal', 'halberd', 'spear'].includes(w.style);
   const look = { body: '#22252b', armor: '#575d68', cape: '#25272d', helm: 'tarnished', trim: '#c9a95a', shield: twoHanded ? null : 'kite', shieldCol: '#5a4630', capeLong: 0.95, aura: P.buffT > 0 ? '255,220,130' : null };
@@ -455,10 +456,18 @@ function drawPlayer() {
     lift: lift + (P.mounted ? 14 : 0) + rollLift,
     weapon: { type: w.rtype, len: w.len, w: w.w, col: w.blade, edge: w.edge, hilt: w.hilt, glow: w.glow }, pose,
   });
+  if (P.state === 'cast' && P.cast) { const sp = P.cast.sp, hc = sp.type === 'incant' ? (sp.col || '255,220,130') : elc(sp.el); glowAt(P.x + Math.cos(P.face - 0.6) * 12, P.y - 18 + Math.sin(P.face - 0.6) * 8, 18 + Math.sin(G.time * 20) * 3, hc, 0.9); }
+  if (P.state === 'bell') glowAt(P.x + Math.cos(P.face - 0.6) * 12, P.y - 18, 22, '150,190,255', 0.9);
   if (P.state === 'heal') glowAt(P.x + Math.cos(P.face + 0.9) * 10, P.y - 16 - lift + Math.sin(P.face + 0.9) * 7, 16, P.healKind === 'fp' ? '120,170,255' : '255,200,90', 0.9);
   ctx.restore();
 }
 function telegraphMarkers(e) {
+  if (e.state === 'phase' && e.phFx === 'meteor' && e.t > 1.1 && e.t < 3.4 && e.mx !== undefined) {
+    const k = clamp((e.t - 1.1) / 2.3, 0, 1);
+    ctx.fillStyle = `rgba(176,112,255,${0.08 + 0.2 * k})`; ctx.beginPath(); ctx.arc(e.mx, e.my, 150, 0, TAU); ctx.fill();
+    ctx.strokeStyle = `rgba(220,160,255,${0.35 + 0.5 * k})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(e.mx, e.my, 150, 0, TAU); ctx.stroke();
+    ctx.beginPath(); ctx.arc(e.mx, e.my, 150 * k, 0, TAU); ctx.stroke();
+  }
   const a = e.atk;
   if (!a || e.dead) return;
   if (e.state === 'windup') {
@@ -518,8 +527,11 @@ function enemyPose(e) {
   return pose;
 }
 function drawEnemy(e) {
+  if (e.hidden) { telegraphMarkers(e); return; }
   const L = e.def.look;
   ctx.save();
+  if (e.spirit) { ctx.globalAlpha *= 0.72; glowAt(e.x, e.y - e.r, e.r * 2.2, '150,190,255', 0.3); }
+  if (e.def.student && !e.dead) glowAt(e.x, e.y - 20, 50, '255,220,140', 0.5 + 0.2 * Math.sin(G.time * 5));
   if (e.dead) ctx.globalAlpha = Math.max(0, 1 - e.deathT / 1.2);
   telegraphMarkers(e);
   const tel = e.state === 'windup' ? 0.5 + 0.5 * Math.sin(e.t * 30) : 0;
@@ -550,10 +562,37 @@ function drawEnemy(e) {
     for (let i = 0; i < 3; i++) { const a = G.time * 4 + i * TAU / 3; ctx.fillText('✦', e.x + Math.cos(a) * 14, e.y - e.r * 2.6 + Math.sin(a) * 4); }
   }
   if (e.frostT > 0) glowAt(e.x, e.y - e.r, e.r * 1.6, '200,235,255', 0.25);
+  if (e.shielded) {
+    // Rennala's golden barrier, held up by her students
+    const by = e.y - e.r - e.air * 70, R = e.r * 2.4;
+    glowAt(e.x, by, R * 1.2, '255,220,140', 0.25);
+    ctx.strokeStyle = `rgba(255,225,150,${0.5 + 0.2 * Math.sin(G.time * 4)})`; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(e.x, by, R, 0, TAU); ctx.stroke();
+    for (const s of e.studs || []) if (!s.dead) {
+      ctx.strokeStyle = 'rgba(255,225,150,0.25)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(s.x, s.y - 30); ctx.lineTo(e.x, by); ctx.stroke();
+    }
+  }
   ctx.restore();
 }
 
 // ---------------------------------------------------------------- hazards
+function drawFullMoon() {
+  const r = G.enemies.find((e) => e.type === 'rennala' && !e.dead && (e.phase2 || e.phFx === 'moon'));
+  if (!r) return;
+  const k = r.phase2 ? 1 : clamp(r.t / 2, 0, 1), mx = W * 0.72, my = H * 0.2, R = Math.min(W, H) * 0.13;
+  ctx.save(); ctx.globalAlpha = k;
+  ctx.fillStyle = 'rgba(40,60,120,0.18)'; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(mx, my, R * 0.4, mx, my, R * 3);
+  g.addColorStop(0, 'rgba(170,200,255,0.5)'); g.addColorStop(1, 'rgba(170,200,255,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx, my, R * 3, 0, TAU); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#e8f0ff'; ctx.beginPath(); ctx.arc(mx, my, R, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(150,170,210,0.35)';
+  for (const [dx, dy, rr] of [[-0.3, -0.2, 0.22], [0.25, 0.1, 0.16], [-0.05, 0.35, 0.12]]) { ctx.beginPath(); ctx.arc(mx + dx * R, my + dy * R, rr * R, 0, TAU); ctx.fill(); }
+  ctx.restore();
+}
 function drawFieldArena(c) {
   // golden fog wall ringing a field boss's ground
   const n = 72;
@@ -647,6 +686,14 @@ function drawHazards() {
   }
   for (const p of G.pproj) {
     const col = elc(p.el);
+    if (p.orb) {
+      // spells: glowing orbs (black flame stays dark at the core)
+      glowAt(p.x, p.y, p.r * 3, col, 0.7);
+      ctx.fillStyle = p.el === 'blackflame' ? '#1a0e0e' : '#ffffff';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.55, 0, TAU); ctx.fill();
+      if (p.big) { ctx.strokeStyle = `rgba(${col},0.8)`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU); ctx.stroke(); }
+      continue;
+    }
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     ctx.strokeStyle = `rgba(${col},0.9)`; ctx.lineWidth = 8; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.arc(p.x - Math.cos(p.ang) * 10, p.y - Math.sin(p.ang) * 10, p.r, p.ang - 1.1, p.ang + 1.1); ctx.stroke();
@@ -703,7 +750,6 @@ function collectLights(v) {
   for (const s of G.strikes) if (s.t <= 0) L.push({ x: s.x, y: s.y, r: 200, a: s.boom * 2.5, col: rgbArr(elc(s.el)) });
   for (const e of G.enemies) {
     if (e.dead || !near(e.x, e.y)) continue;
-    if (e.phase2 && e.boss) L.push({ x: e.x, y: e.y - 16, r: 200, a: 0.55, col: rgbArr(e.def.el ? elc(e.def.el) : '255,120,50') });
     const glow = e.def.look.aura || e.def.look.glow;
     if (glow) L.push({ x: e.x, y: e.y - 16, r: 160, a: 0.4, col: rgbArr(glow) });
     if (e.atk && (e.atk.kind === 'breath' || e.atk.kind === 'beam') && e.state === 'active') L.push({ x: e.x + Math.cos(e.face) * 120, y: e.y + Math.sin(e.face) * 120, r: 300, a: 1, col: rgbArr(elc(e.atk.el)) });
@@ -883,6 +929,7 @@ function render(dt = 0.016) {
   for (const it of G.items) if (it.inst === G.inst && it.y > v.y0 && it.y < v.y1 && it.x > v.x0 && it.x < v.x1) list.push({ y: it.y, f: () => drawItem(it) });
   for (const f of FOGS) if (f.inst === G.inst && f.y > v.y0 - 80 && f.y < v.y1 && f.x > v.x0 - 80 && f.x < v.x1) list.push({ y: f.y + f.h + 1, f: () => drawFog(f) });
   list.push({ y: P.y, f: drawPlayer });
+  for (const al of G.allies) list.push({ y: al.y, f: () => drawAlly(al) });
   list.sort((a, b) => a.y - b.y);
   for (const d of list) d.f();
   if (!G.inst) drawErdtree(v);
@@ -919,6 +966,7 @@ function render(dt = 0.016) {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   renderLighting(ambDraw, collectLights(v));
   drawAtmosphere(ambDraw);
+  drawFullMoon();
   if (G.state === 'play' || G.state === 'pause' || G.state === 'menu') drawHUD();
   drawBanners();
 }

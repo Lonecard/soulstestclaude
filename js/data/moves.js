@@ -49,6 +49,10 @@ const M = {
   pool(name, o) { return { [name]: { wind: o.wind || 0.8, act: 0.1, rec: o.rec || 0.8, dmg: o.dmg, kind: 'pool', rad: o.rad || 70, life: o.life || 5, n: o.n || 1, min: o.min ?? 0, max: o.max || 500, w: o.w ?? 1.2, track: 4, el: o.el || 'rot', status: o.status, p2: o.p2 } }; },
   daggers(name, o) { return { [name]: { wind: o.wind || 0.55, act: 0.1, rec: o.rec || 0.55, dmg: o.dmg, kind: 'daggers', n: o.n || 3, min: o.min ?? 110, max: o.max || 620, w: o.w ?? 1.5, track: 6, el: o.el || 'holy', p2: o.p2 } }; },
   blink(name, o) { return { [name]: { wind: o.wind || 0.35, act: 0.1, rec: 0.05, dmg: 0, kind: 'blink', min: o.min || 120, max: o.max || 600, w: o.w ?? 1, track: 6, next: o.next, chain: 1, p2: o.p2, el: o.el } }; },
+  // grab: catches the player and slams them (Hoarah Loux, Gargoyles...)
+  grab(name, o) { return { [name]: { wind: o.wind || 0.7, act: 0.18, rec: o.rec || 1.4, dmg: o.dmg, range: o.range || 60, arc: 1.2, lunge: o.lunge ?? 260, grab: true, min: 0, max: o.max || (o.range || 60) + 40, w: o.w ?? 1.2, track: 6, el: o.el, p2: o.p2 } }; },
+  // calls spirits to fight alongside the boss: types is a list of possible groups
+  adds(name, o) { return { [name]: { wind: o.wind || 1.1, act: 0.2, rec: o.rec || 0.8, dmg: 0, kind: 'adds', types: o.types, life: o.life || 25, min: 0, max: 900, w: o.w ?? 1.2, track: 0, el: o.el || 'magic', p2: o.p2 } }; },
   arrow(name, o) { return { [name]: { wind: o.wind || 0.95, act: 0.1, rec: o.rec || 0.75, dmg: o.dmg, kind: 'arrow', spd: o.spd || 560, min: o.min ?? 50, max: o.max || 460, w: o.w ?? 1, track: 9, el: o.el, p2: o.p2 } }; },
 };
 const merge = (...parts) => Object.assign({}, ...parts);

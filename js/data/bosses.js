@@ -20,6 +20,7 @@ function BD(name, look, r, speed, rank, atks, o = {}) {
   return { name, look, r, speed, rank, atks, poise: o.poise || Math.round(60 + r * 5), aggro: o.aggro || 340, boss: true, ...o };
 }
 const p2 = (atks) => { for (const k in atks) atks[k].p2 = true; return atks; };
+const p1 = (atks) => { for (const k in atks) atks[k].p1 = true; return atks; };
 
 const BOSSES = {
   // ======================= Limgrave / Stormhill
@@ -37,7 +38,7 @@ const BOSSES = {
     30, 92, 'demigod', merge(
       K.axe(1.4, 28, { ring: 160 }), M.stomps('stp', { dmg: 22, n: 3 }), M.spin('wh', { dmg: 18, rad: 96, act: 1.1 }),
       p2(M.breath('br', { dmg: 13, range: 250, el: 'fire', w: 2.5 })), p2(M.slam('drg', { dmg: 46, off: 76, rad: 66, glint: 0.85, ring: 220, el: 'fire' })),
-    ), { p2: 0.5, p2roar: true, rune: "Godrick's Great Rune", felled: 'DEMIGOD FELLED' }),
+    ), { p2: 0.5, rune: "Godrick's Great Rune", felled: 'DEMIGOD FELLED' }),
   agheel: BD('Flying Dragon Agheel', { kind: 'dragon', body: '#5a4a3a', wing: '#4a3a2e', belly: '#8a7a5a', eye: '#ffb040' },
     44, 110, 'field', K.dragon(1.6, 30, { el: 'fire' })),
   nights_cavalry: BD("Night's Cavalry", { kind: 'mounted', armor: '#1e1c22', trim: '#4a4a52', horse: '#141216', mane: '#2a2a30', plume: '#2a2a2a', shieldCol: '#1a1a1e', eyeGlow: '#c03030', weapon: WPN('halberd', 90, { col: '#2a2a30', edge: '#8a8a90' }) },
@@ -94,9 +95,12 @@ const BOSSES = {
   red_wolf: BD('Red Wolf of Radagon', { kind: 'quad', body: '#8a3020', fur: '#c05030', scale: 1.9, glow: '255,90,50' },
     24, 160, 'major', merge(K.beast(1.4, 28), M.volley('gl', { dmg: 20, n: 3, el: 'magic', homing: 1.4 }), M.blink('bl', { next: 'bt1' })), { felled: 'GREAT ENEMY FELLED' }),
   rennala: BD('Rennala, Queen of the Full Moon', HU({ armor: '#3a4a8a', body: '#2a3a6a', robe: true, helm: 'queen', features: ['float'], aura: '150,190,255', weapon: WPN('staff', 50, { col: '#c0d8ff' }) }),
-    18, 70, 'demigod', merge(K.caster(1, 28, { el: 'magic' }), M.blink('bl', { next: 'vo', w: 1 }),
-      p2(M.volley('moon', { dmg: 44, n: 1, spd: 140, homing: 0.6, pr: 30, el: 'magic', wind: 1.4, w: 2 })), p2(M.strikes('cm', { dmg: 30, n: 7, el: 'magic', rad: 60, spread: 160 }))),
-    { p2: 0.5, p2roar: true, rune: 'Great Rune of the Unborn', felled: 'LEGEND FELLED', ranged: { keep: 220, flee: 120 } }),
+    18, 70, 'demigod', merge(
+      p1(M.volley('bk', { dmg: 16, n: 3, spread: 0.3, spd: 260, homing: 0.8, el: 'magic', wind: 1.0, w: 2 })),
+      p2(K.caster(1, 28, { el: 'magic' })), p2(M.blink('bl', { next: 'vo', w: 1 })),
+      p2(M.volley('moon', { dmg: 44, n: 1, spd: 140, homing: 0.6, pr: 30, el: 'magic', wind: 1.4, w: 2 })), p2(M.strikes('cm', { dmg: 30, n: 7, el: 'magic', rad: 60, spread: 160 })),
+      p2(M.adds('sum', { types: [['wolf', 'wolf', 'wolf'], ['troll'], ['sorcerer', 'sorcerer']], life: 22, w: 1.2 }))),
+    { rune: 'Great Rune of the Unborn', felled: 'LEGEND FELLED', ranged: { keep: 220, flee: 120 }, students: 3, hpMul: 0.35 }),
   loretta: BD('Royal Knight Loretta', { kind: 'mounted', armor: '#8ab0e0', trim: '#e0f0ff', horse: '#7aa0c8', mane: '#d0e8ff', plume: '#e0f0ff', shieldCol: '#7a9ac0', ghost: true, weapon: WPN('halberd', 96, { col: '#c0d8ff', edge: '#ffffff' }) },
     30, 120, 'major', merge(K.halberd(1.3, 30, { el: 'magic' }), M.volley('ar', { dmg: 22, n: 5, spread: 0.12, spd: 420, el: 'magic' }), M.strikes('ha', { dmg: 26, n: 5, el: 'magic' })), { mount: true, felled: 'GREAT ENEMY FELLED', drop: 'nightflame' }),
   royal_revenant: BD('Royal Revenant', HU({ armor: '#6a6a70', body: '#4a4a50', helm: 'skull', features: ['grafted'], ghost: false }),
@@ -127,7 +131,7 @@ const BOSSES = {
       M.leap('lp', { dmg: 44, rad: 90, ring: 260, wave: true, el: 'gravity' }), M.nova('gv', { dmg: 34, maxR: 220, el: 'gravity' }),
       p2(M.leap('meteor', { dmg: 70, rad: 130, air: 1.6, wind: 1.0, min: 0, max: 900, ring: 320, wave: true, el: 'gravity', w: 2.5, shake: 24 })),
       p2(M.strikes('st', { dmg: 36, n: 6, rad: 70, el: 'gravity', spread: 160 })),
-    ), { p2: 0.5, p2roar: true, rune: "Radahn's Great Rune", felled: 'DEMIGOD FELLED', mount: true, drop: 'starscourge' }),
+    ), { p2: 0.5, rune: "Radahn's Great Rune", felled: 'DEMIGOD FELLED', mount: true, drop: 'starscourge' }),
   misbegotten_warrior: BD('Misbegotten Warrior', HU({ armor: '#8a6a40', body: '#6a4a2a', helm: 'lion', features: ['mane'], mane: '#c08a3a', weapon: WPN('great', 66, { w: 9, col: '#8a8478' }) }),
     18, 115, 'dungeon', merge(K.greatsword(1.2, 28, { el: 'magic' }), M.leap('lp', { dmg: 30, rad: 54 })), { drop: 'ruins' }),
   oneil: BD('Commander O\'Neil', HU({ armor: '#7a5a3a', body: '#5a3a2a', cape: '#8a3a2a', helm: 'knight', plume: '#c06030', weapon: WPN('axe', 74) }),
@@ -173,9 +177,10 @@ const BOSSES = {
     26, 90, 'dungeon', merge(K.caster(1.2, 26, { el: 'magic' }), M.slam('sm', { dmg: 32, off: 50, rad: 60 }), M.leap('lp', { dmg: 32, rad: 70 }))),
   sanguine_noble: BD('Sanguine Noble', HU({ armor: '#6a2030', body: '#4a1a24', robe: true, helm: 'noble', weapon: WPN('katana', 44, { col: '#c03040' }) }),
     13, 100, 'dungeon', merge(K.katana(1.0, 22, { status: 'bleed' }), M.pool('bp', { dmg: 5, rad: 70, el: 'blood', status: 'bleed' }))),
-  rykard: BD('Rykard, Lord of Blasphemy', { kind: 'serpent', body: '#4a3028', head: 'rykard', glow: '255,110,40', huge: true },
-    52, 80, 'demigod', merge(K.serpent(2.0, 36, { el: 'fire' }), M.volley('sk', { dmg: 26, n: 5, spread: 0.3, spd: 220, homing: 1.2, el: 'fire', pr: 12 }), M.breath('br', { dmg: 14, range: 280, el: 'fire' }), M.strikes('lv', { dmg: 34, n: 6, el: 'fire', rad: 60 })),
-    { rune: "Rykard's Great Rune", felled: 'GREAT ENEMY FELLED', drop: 'blasphemous', poise: 9999 }),
+  rykard: BD('God-Devouring Serpent', { kind: 'serpent', body: '#4a3028', head: 'serpent', glow: '255,110,40', huge: true },
+    52, 80, 'demigod', merge(K.serpent(2.0, 36, { el: 'fire' }), M.breath('br', { dmg: 14, range: 280, el: 'fire' }),
+      p2(M.volley('sk', { dmg: 26, n: 5, spread: 0.3, spd: 220, homing: 1.2, el: 'fire', pr: 12 })), p2(M.strikes('lv', { dmg: 34, n: 6, el: 'fire', rad: 60 })), p2(M.nova('ty', { dmg: 32, maxR: 260, el: 'fire', wind: 1.4 }))),
+    { rune: "Rykard's Great Rune", felled: 'GREAT ENEMY FELLED', drop: 'blasphemous', poise: 9999, hpMul: 0.55 }),
   kindred_rot: BD('Kindred of Rot', HU({ armor: '#8a7a3a', body: '#6a5a2a', helm: 'bug', weapon: WPN('spear', 70, { col: '#c0a050' }) }),
     14, 120, 'dungeon', merge(K.halberd(1.0, 22, { status: 'poison' }), M.volley('pn', { dmg: 16, n: 3, el: 'poison', spread: 0.3 }), M.leap('lp', { dmg: 24, rad: 50 }))),
   red_wolf_champion: BD('Red Wolf of the Champion', { kind: 'quad', body: '#8a3020', fur: '#d06030', scale: 1.9, glow: '255,120,50' },
@@ -197,9 +202,9 @@ const BOSSES = {
   // ======================= Mountaintops / Snowfield / Haligtree
   fire_giant: BD('Fire Giant', { kind: 'troll', skin: '#8a6a50', cloth: '#5a3a2a', variant: 'giant', beard: '#c08040' },
     62, 70, 'demigod', merge(K.colossal(2.0, 24, { el: 'fire' }), M.volley('fb', { dmg: 20, n: 3, el: 'fire', spd: 260, pr: 16 }), M.breath('br', { dmg: 8, range: 300, el: 'fire' }), M.charge('rl', { dmg: 28, spd: 480, rad: 60 }), p2(M.nova('fl', { dmg: 28, maxR: 320, el: 'fire' })), p2(M.strikes('fp', { dmg: 24, n: 6, el: 'fire', rad: 70 }))),
-    { p2: 0.5, p2roar: true, felled: 'GREAT ENEMY FELLED', poise: 9999, arena: 900 }),
+    { p2: 0.5, felled: 'GREAT ENEMY FELLED', poise: 9999, arena: 900 }),
   niall: BD('Commander Niall', HU({ armor: '#6a6a72', body: '#4a4a52', cape: '#8a2a2a', helm: 'knight', plume: '#c0c0c8', features: ['furcollar'], weapon: WPN('halberd', 90, { col: '#c0c0d0' }) }),
-    22, 95, 'major', merge(K.halberd(1.3, 32, { el: 'frost', status: 'frost' }), M.strikes('lt', { dmg: 28, n: 5, el: 'lightning' }), M.nova('fr', { dmg: 28, maxR: 220, el: 'frost', status: 'frost' })), { felled: 'GREAT ENEMY FELLED' }),
+    22, 95, 'major', merge(K.halberd(1.3, 32, { el: 'frost', status: 'frost' }), p2(M.strikes('lt', { dmg: 28, n: 5, el: 'lightning' })), p2(M.stomps('kk', { dmg: 24, n: 2, el: 'lightning' })), M.nova('fr', { dmg: 28, maxR: 220, el: 'frost', status: 'frost' })), { felled: 'GREAT ENEMY FELLED', escort: ['banished', 'banished'], p2: 0.5 }),
   borealis: BD('Borealis the Freezing Fog', { kind: 'dragon', body: '#9ab0c0', wing: '#7a90a0', belly: '#d0e8f0', eye: '#c0f0ff' },
     50, 110, 'field', K.dragon(1.9, 36, { el: 'frost', status: 'frost' })),
   vyke: BD('Roundtable Knight Vyke', HU({ armor: '#8a7a3a', body: '#5a4a2a', cape: '#6a5a2a', helm: 'knight', aura: '255,220,60', weapon: WPN('spear', 90, { col: '#e0c040' }) }),
@@ -222,7 +227,7 @@ const BOSSES = {
       M.leap('lp', { dmg: 36, rad: 56 }),
       p2(M.nova('bloom', { dmg: 50, maxR: 340, el: 'rot', status: 'rot', wind: 1.6, w: 1.5 })),
       p2(M.pool('rt', { dmg: 12, rad: 100, n: 3, el: 'rot', status: 'rot' })),
-    ), { p2: 0.5, p2roar: true, lifesteal: 0.4, rune: "Malenia's Great Rune", felled: 'GOD SLAIN', drop: 'malenia' }),
+    ), { lifesteal: 0.4, hpMul: 0.6, rune: "Malenia's Great Rune", felled: 'GOD SLAIN', drop: 'malenia' }),
   // ======================= Underground realms
   ancestor_spirit: BD('Ancestor Spirit', { kind: 'quad', body: '#b8c8d8', fur: '#e0f0ff', scale: 3.2, antlers: true, glow: '170,210,255', ghost: true },
     40, 110, 'field', merge(K.beast(2.0, 30), M.strikes('sp', { dmg: 26, n: 5, el: 'magic' }), M.nova('nv', { dmg: 28, maxR: 240, el: 'magic' }))),
@@ -243,21 +248,23 @@ const BOSSES = {
   mohg: BD('Mohg, Lord of Blood', HU({ armor: '#5a1a1a', body: '#2a0a0a', robe: true, helm: 'mohg', aura: '220,30,50', weapon: WPN('trident', 100, { col: '#a01020', edge: '#ff4050' }) }),
     30, 95, 'demigod', merge(K.halberd(1.6, 36, { el: 'blood', status: 'bleed' }), M.pool('bf', { dmg: 11, rad: 100, n: 3, el: 'blood', status: 'bleed' }), M.strikes('bs', { dmg: 32, n: 6, el: 'blood', status: 'bleed', rad: 60 }),
       p2(M.nova('nihil', { dmg: 46, maxR: 360, el: 'blood', status: 'bleed', wind: 1.8, w: 2 })), p2(M.leap('fl', { dmg: 44, rad: 90, air: 1.0, ring: 260, el: 'blood' }))),
-    { p2: 0.5, p2roar: true, rune: "Mohg's Great Rune", felled: 'DEMIGOD FELLED', drop: 'mohgspear' }),
+    { p2: 0.5, rune: "Mohg's Great Rune", felled: 'DEMIGOD FELLED', drop: 'mohgspear' }),
   // ======================= Crumbling Farum Azula / Ashen Capital
-  maliketh: BD('Maliketh, the Black Blade', HU({ armor: '#2a2428', body: '#1a1418', cape: '#2a2026', capeLong: 1.4, helm: 'maliketh', features: ['mane'], mane: '#3a3a3a', weapon: WPN('great', 84, { w: 7, col: '#2a2228', edge: '#c04050' }) }),
-    20, 150, 'demigod', merge(
-      M.combo('cl', 3, { dmg: 30, range: 70, arc: 2.4, lunge: 260, wind: 0.45 }), M.leap('lp', { dmg: 36, rad: 64 }), M.volley('rk', { dmg: 22, n: 5, el: 'phys', spread: 0.25 }),
-      p2(M.combo('bb', 3, { dmg: 38, range: 104, arc: 2.6, lunge: 280, wind: 0.5, el: 'death' })), p2(M.volley('dd', { dmg: 34, n: 3, el: 'death', spd: 420, pr: 14 })), p2(M.leap('dl', { dmg: 54, rad: 110, ring: 280, wave: true, el: 'death', w: 2 })),
-    ), { p2: 0.5, p2roar: true, felled: 'GREAT ENEMY FELLED', drop: 'blackblade' }),
+  maliketh: BD('Beast Clergyman', HU({ armor: '#4a4238', body: '#2a2420', cape: '#3a322a', capeLong: 1.5, robe: true, helm: 'beast', features: ['mane'], mane: '#8a8270', weapon: WPN('great', 70, { w: 6, col: '#4a4448', edge: '#8a8088' }) }),
+    20, 130, 'demigod', merge(
+      p1(M.combo('cw', 3, { dmg: 28, range: 72, arc: 2.6, lunge: 240, wind: 0.5 })), p1(M.volley('rk', { dmg: 22, n: 5, el: 'gravity', spread: 0.25, spd: 320 })),
+      p1(M.leap('lp', { dmg: 34, rad: 64 })), p1(M.thrust('th', { dmg: 30, range: 96, lunge: 360 })),
+      p2(M.combo('bb', 3, { dmg: 36, range: 104, arc: 2.6, lunge: 280, wind: 0.5, el: 'death' })), p2(M.volley('dd', { dmg: 32, n: 3, el: 'death', spd: 420, pr: 14 })),
+      p2(M.leap('dl', { dmg: 50, rad: 110, ring: 280, wave: true, el: 'death', w: 2 })), p2(M.combo('cl', 4, { dmg: 26, range: 70, arc: 2.4, lunge: 300, wind: 0.38, chain: 0.85, el: 'death' }))),
+    { felled: 'GREAT ENEMY FELLED', drop: 'blackblade', hpMul: 0.45 }),
   placidusax: BD('Dragonlord Placidusax', { kind: 'dragon', body: '#7a6a5a', wing: '#5a4a3a', belly: '#c0a080', eye: '#ffd060', heads: 2 },
     60, 90, 'god', merge(K.dragon(2.2, 42, { el: 'redlightning', strikes: true }), M.blink('tp', { next: 'br' }), M.beam('lb', { dmg: 16, len: 520, el: 'redlightning', sweep: 0.7 })), { felled: 'LEGEND FELLED' }),
   gideon: BD('Sir Gideon Ofnir, the All-Knowing', HU({ armor: '#6a6a72', body: '#3a3a42', cape: '#4a3a2a', robe: true, helm: 'gideon', weapon: WPN('staff', 54, { col: '#c0c0d0' }) }),
     14, 110, 'major', merge(K.caster(1, 30, { el: 'magic' }), M.volley('fb', { dmg: 24, n: 3, el: 'fire' }), M.strikes('bl', { dmg: 26, n: 6, el: 'blood', status: 'bleed' }), M.blink('bk', { next: 'vo' })), { ranged: { keep: 200, flee: 120 } }),
   godfrey: BD('Godfrey, First Elden Lord', HU({ armor: '#8a6a3a', body: '#6a4a2a', cape: '#7a5a2a', helm: 'lion', features: ['mane'], mane: '#c08a3a', weapon: WPN('axe', 100, { col: '#5a5a60', edge: '#d0b070' }) }),
     28, 100, 'god', merge(K.axe(1.5, 38, { ring: 220 }), M.stomps('stp', { dmg: 28, n: 4 }), M.charge('ch', { dmg: 34, spd: 560 }),
-      p2(M.combo('hl', 3, { dmg: 40, range: 70, arc: 2.0, lunge: 320, wind: 0.5 })), p2(M.leap('gr', { dmg: 60, rad: 100, ring: 300, wave: true, air: 1.0 }))),
-    { p2: 0.5, p2roar: true, felled: 'GOD SLAIN', p2name: 'Hoarah Loux, Warrior' }),
+      p2(M.combo('hl', 3, { dmg: 40, range: 70, arc: 2.0, lunge: 320, wind: 0.5 })), p2(M.grab('gb', { dmg: 70, range: 64, w: 1.6 })), p2(M.leap('gr', { dmg: 60, rad: 100, ring: 300, wave: true, air: 1.0 }))),
+    { p2: 0.5, felled: 'GOD SLAIN'}),
   radagon: BD('Radagon of the Golden Order', HU({ armor: '#c8a050', body: '#a08040', helm: 'redhair', features: ['hair', 'halo'], hair: '#c03020', aura: '255,220,130', weapon: WPN('hammer', 80) }),
     24, 110, 'god', merge(M.combo('hm', 3, { dmg: 38, range: 96, arc: 2.4, lunge: 220, wind: 0.6, el: 'holy' }), M.slam('ho', { dmg: 46, off: 70, rad: 80, ring: 260, el: 'holy', glint: 0.9 }), M.strikes('hs', { dmg: 32, n: 8, el: 'holy', rad: 56, spread: 180 }), M.blink('bl', { next: 'hm1', w: 1.5 }), M.nova('nv', { dmg: 36, maxR: 260, el: 'holy' })),
     { felled: 'GOD SLAIN' }),
@@ -267,3 +274,25 @@ const BOSSES = {
 };
 BOSSES.magma_wyrm_gelmir = BOSSES.magma_wyrm;
 BOSSES.misbegotten_crusader.drop = null;
+
+// ---------------------------------------------------------------- real second phases
+// at: hp fraction that starts it (fresh: the first bar has to be emptied, then a new full bar appears)
+// fx picks the transition; look/name/el/speed change the boss for the rest of the fight
+const PHASE2 = {
+  margit: { at: 0.5, fx: 'quiet' },
+  godrick: { at: 0.5, fx: 'graft', dur: 3.6, quote: 'Lend me thine strength, O kindred... Deliver me unto greatness!' },
+  rennala: { fresh: true, hpMul: 2.6, fx: 'moon', dur: 3.4, quote: 'The Full Moon rises over the Academy.' },
+  radahn: { at: 0.5, fx: 'meteor', dur: 4.4 },
+  rykard: { fresh: true, hpMul: 1.4, fx: 'emerge', dur: 3.4, name: 'Rykard, Lord of Blasphemy', look: { head: 'rykard' }, quote: 'Join the Serpent King as family... Together, we will devour the very gods!' },
+  morgott: { at: 0.5, fx: 'cursed', dur: 2.0 },
+  niall: { at: 0.5, fx: 'leg', dur: 1.8 },
+  malenia: { fresh: true, hpMul: 1, fx: 'bloom', dur: 4.6, name: 'Malenia, Goddess of Rot', quote: 'Let your flesh be consumed... by the scarlet rot.' },
+  mohg: { at: 0.5, fx: 'ritual', dur: 5.0, look: { features: ['wings'], wing: '#5a0a14' }, quote: 'Nihil! Nihil! Nihil!' },
+  maliketh: { fresh: true, hpMul: 1.8, fx: 'reveal', dur: 3.2, name: 'Maliketh, the Black Blade', speed: 1.15,
+    look: { armor: '#2a2428', body: '#1a1418', cape: '#2a2026', capeLong: 1.4, robe: false, helm: 'maliketh', features: ['mane'], mane: '#3a3a3a', weapon: WPN('great', 84, { w: 7, col: '#2a2228', edge: '#c04050' }) },
+    quote: 'O, Death... Become my blade, once more.' },
+  godfrey: { at: 0.5, fx: 'kneel', dur: 3.6, name: 'Hoarah Loux, Warrior', speed: 1.1,
+    look: { armor: '#9a6a48', body: '#7a4a30', cape: null, helm: 'lion', mane: '#6a5a50', features: ['mane'] }, quote: 'Hoarah Loux... Warrior!' },
+  fire_giant: { at: 0.5, fx: 'legoff', dur: 3.6, look: { crawl: true }, speed: 0.75 },
+};
+for (const [id, ph] of Object.entries(PHASE2)) { BOSSES[id].phase2 = ph; BOSSES[id].p2 = ph.fresh ? 0 : ph.at; }

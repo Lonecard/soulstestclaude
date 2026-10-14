@@ -89,6 +89,7 @@ button:disabled { opacity: .35; }
 
 
 /* travel groups, weapon buttons */
+.list .item > div:nth-child(2):not(.btns) { text-align: right; }
 .list .group { color: var(--gold); font-size: 12px; letter-spacing: .12em; margin: 10px 6px 2px; opacity: .8; text-transform: uppercase; }
 .list .btns { display: flex; flex-direction: column; gap: 4px; }
 #btnTime { display: block; width: 100%; margin: 8px 0 0; }
