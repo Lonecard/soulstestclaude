@@ -5,7 +5,8 @@ const $ = (id) => document.getElementById(id);
 const graceKey = (g) => (g.inst || 'ow') + '|' + g.name;
 
 // ---------------------------------------------------------------- save
-const SAVE_KEY = 'ashenreach_save_v3';
+const SAVE_KEY = 'ashenreach_save_v4';
+const OLD_SAVE_KEY = 'ashenreach_save_v3'; // older map scale: keep progress, drop the bloodstain position
 function save() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
@@ -17,7 +18,8 @@ function save() {
 }
 function load() {
   try {
-    const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    let s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    if (!s) { s = JSON.parse(localStorage.getItem(OLD_SAVE_KEY) || 'null'); if (s) s.bloodstain = null; }
     if (!s) return false;
     for (const k of ['vig', 'mnd', 'end', 'str']) P[k] = s[k] || 10;
     P.runes = s.runes || 0; P.seeds = s.seeds || 0; P.wlv = s.wlv || {};

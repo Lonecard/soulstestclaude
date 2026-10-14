@@ -36,8 +36,8 @@ const M = {
     return out;
   },
   thrust(name, o) { return { [name]: { wind: o.wind || 0.75, act: 0.16, rec: o.rec || 0.7, dmg: o.dmg, range: o.range, arc: 0.55, lunge: o.lunge || 320, thrust: true, min: o.min ?? 50, max: o.max || o.range + 80, w: o.w ?? 1.5, track: 4, el: o.el, status: o.status, p2: o.p2 } }; },
-  slam(name, o) { return { [name]: { wind: o.wind || 1.0, act: 0.16, rec: o.rec || 0.9, dmg: o.dmg, kind: 'circle', off: o.off, rad: o.rad, lunge: o.lunge ?? 100, min: 0, max: o.max || o.off + o.rad, w: o.w ?? 2, track: o.track || 3, glint: o.glint, shake: o.shake || 10, ring: o.ring, el: o.el, status: o.status, p2: o.p2, summon: o.summon, next: o.next, chain: o.chain } }; },
-  leap(name, o) { return { [name]: { wind: o.wind || 0.55, act: o.air || 0.6, rec: o.rec || 0.9, dmg: o.dmg, kind: 'leap', rad: o.rad, min: o.min || 160, max: o.max || 480, w: o.w ?? 1.5, track: 6, shake: o.shake || 12, ring: o.ring, el: o.el, p2: o.p2 } }; },
+  slam(name, o) { return { [name]: { wind: o.wind || 1.0, act: 0.16, rec: o.rec || 0.9, dmg: o.dmg, kind: 'circle', off: o.off, rad: o.rad, lunge: o.lunge ?? 100, min: 0, max: o.max || o.off + o.rad, w: o.w ?? 2, track: o.track || 3, glint: o.glint, shake: o.shake || 10, ring: o.ring, wave: o.wave, el: o.el, status: o.status, p2: o.p2, summon: o.summon, next: o.next, chain: o.chain } }; },
+  leap(name, o) { return { [name]: { wind: o.wind || 0.55, act: o.air || 0.6, rec: o.rec || 0.9, dmg: o.dmg, kind: 'leap', rad: o.rad, min: o.min || 160, max: o.max || 480, w: o.w ?? 1.5, track: 6, shake: o.shake || 12, ring: o.ring, wave: o.wave, el: o.el, p2: o.p2 } }; },
   charge(name, o) { return { [name]: { wind: o.wind || 0.7, act: o.act || 0.55, rec: o.rec || 0.8, dmg: o.dmg, kind: 'dash', dashSpd: o.spd || 620, rad: o.rad || 30, min: o.min || 150, max: o.max || 500, w: o.w ?? 1.5, track: 4, el: o.el, p2: o.p2 } }; },
   spin(name, o) { return { [name]: { wind: o.wind || 0.8, act: o.act || 1.0, rec: o.rec || 0.9, dmg: o.dmg, kind: 'spin', rad: o.rad, chase: o.chase ?? 70, min: 0, max: o.max || o.rad + 40, w: o.w ?? 1.2, track: 2, el: o.el, status: o.status, p2: o.p2 } }; },
   stomps(name, o) { return { [name]: { wind: o.wind || 0.75, act: 0.9, rec: o.rec || 0.9, dmg: o.dmg, kind: 'stomps', n: o.n || 3, maxR: o.maxR || 200, min: 0, max: o.max || 220, w: o.w ?? 1.5, track: 2, shake: 9, el: o.el, p2: o.p2 } }; },
@@ -81,8 +81,7 @@ const K = {
     M.spin('sp', { dmg: d * 0.5, rad: 74 * s, act: 1.0, chase: 110, el: o.el })),
   colossal: (s, d, o = {}) => merge(
     M.combo('sw', 2, { dmg: d, range: 110 * s, arc: 2.8, lunge: 60, wind: 0.95, rec: 1.0, el: o.el }),
-    M.slam('sm', { dmg: d * 1.4, off: 70 * s, rad: 58 * s, wind: 1.2, shake: 14, ring: 150 * s, el: o.el }),
-    M.stomps('st', { dmg: d * 0.6, n: 2, maxR: 160 * s, el: o.el })),
+    M.slam('sm', { dmg: d * 1.4, off: 70 * s, rad: 58 * s, wind: 1.2, shake: 14, el: o.el })),
   beast: (s, d, o = {}) => merge(
     M.combo('bt', 3, { dmg: d * 0.8, range: 46 * s, arc: 1.8, lunge: 300, wind: 0.42, el: o.el, status: o.status, chain: 0.7 }),
     M.charge('pn', { dmg: d * 1.2, spd: 560, rad: 24 * s, min: 120, max: 420, el: o.el }),
@@ -92,7 +91,6 @@ const K = {
     M.slam('cl', { dmg: d * 1.3, off: 60 * s, rad: 60 * s, wind: 0.9, shake: 12 }),
     M.breath('br', { dmg: d * 0.35, range: 260 * s, cone: 0.5, el: o.el || 'fire', status: o.status, act: 1.6 }),
     M.leap('fl', { dmg: d * 1.5, rad: 80 * s, air: 1.0, wind: 0.8, min: 200, max: 700, shake: 18, ring: 220 }),
-    o.wing === false ? {} : M.nova('wg', { dmg: d * 0.5, maxR: 220 * s, el: 'phys', w: 0.8 }),
     o.strikes ? M.strikes('ls', { dmg: d * 0.8, n: 5, rad: 50, el: o.el, spread: 110 }) : {}),
   caster: (s, d, o = {}) => merge(
     M.volley('vo', { dmg: d * 0.6, n: 5, spread: 0.18, spd: 340, homing: 1.2, el: o.el || 'magic' }),
@@ -102,8 +100,7 @@ const K = {
   bird: (s, d, o = {}) => merge(
     M.combo('pk', 2, { dmg: d, range: 80 * s, arc: 2.2, lunge: 160, wind: 0.65, el: o.el }),
     M.leap('dv', { dmg: d * 1.4, rad: 64 * s, air: 0.9, min: 150, max: 560, el: o.el }),
-    M.volley('df', { dmg: d * 0.6, n: 3, spread: 0.3, spd: 220, homing: 1.6, el: o.el || 'death', pr: 10 }),
-    M.nova('cw', { dmg: d * 0.7, maxR: 200, el: o.el || 'death' })),
+    M.volley('df', { dmg: d * 0.6, n: 3, spread: 0.3, spd: 220, homing: 1.6, el: o.el || 'death', pr: 10 })),
   tree: (s, d, o = {}) => merge(
     M.combo('hm', 2, { dmg: d, range: 110 * s, arc: 2.6, lunge: 80, wind: 0.95, rec: 1.0 }),
     M.slam('sm', { dmg: d * 1.5, off: 76 * s, rad: 64 * s, wind: 1.2, shake: 16, ring: 180 }),

@@ -232,7 +232,7 @@ const ROADS_W = ROADS.map((r) => r.map(toW));
 const inPatch = (p, x, y) => (p.pts ? pip(x, y, p.pts) : Math.hypot(x - p.cx, y - p.cy) < p.r);
 
 // region grid for fast lookup: cell -> region index (-1 = sea)
-const RG_CELL = 50;
+const RG_CELL = 80;
 const RG_W = Math.ceil(OW.w / RG_CELL), RG_H = Math.ceil(OW.h / RG_CELL);
 let RGRID = null;
 function buildRegionGrid() {
@@ -258,7 +258,7 @@ function patchAt(x, y) {
 }
 
 // ================================================================ dungeon instances
-const POCKET_X = 20000;
+const POCKET_X = OW.w + 4000;
 const INST = {};
 const INST_LIST = [];
 const FLOOR = new Set(); // walkable 100-unit cells inside instances
@@ -323,15 +323,28 @@ function genInstance(d, idx) {
   const first = inst.rooms[0];
   inst.spawn = { x: first.x + 90, y: first.cy };
   if (d.size !== 'arena') inst.portals.push({ x: first.x + 40, y: first.cy, kind: 'leave', label: 'Leave', inst: d.id });
+  // Sites of Grace: one at the entrance and one in the room right before each boss
+  // (unless a grace is already close), never two in neighbouring rooms.
   const graceNames = (d.graces && d.graces.length) ? [...d.graces] : [d.name];
-  let gi = 0;
+  let gi = 0, lastGraceRoom = -9;
+  const nextName = (fallback) => (gi < graceNames.length ? graceNames[gi++] : fallback);
   inst.rooms.forEach((r, i) => {
-    if (r.type === 'entry' && gi < graceNames.length) inst.graces.push({ name: graceNames[gi++], x: r.cx + 40, y: r.cy - 40, inst: d.id });
-    else if (r.type === 'fight' && gi < graceNames.length && (d.size === 'legacy' || d.size === 'large') && R() < 0.75) inst.graces.push({ name: graceNames[gi++], x: r.cx, y: r.y + 70, inst: d.id });
+    if (r.type === 'entry') { inst.graces.push({ name: nextName(d.name), x: r.cx + 40, y: r.cy - 40, inst: d.id, room: i }); lastGraceRoom = i; }
+    const next = inst.rooms[i + 1];
+    if (r.type === 'fight' && next && next.type === 'boss' && i - lastGraceRoom >= 2) {
+      inst.graces.push({ name: nextName(d.name + ' - ' + BOSSES[next.ids[0]].name.split(',')[0] + '\'s Gate'), x: r.x + r.w - 110, y: r.y + 70, inst: d.id, room: i });
+      lastGraceRoom = i;
+    }
+    if (r.type === 'boss') lastGraceRoom = i;
     if (r.type === 'fight') {
       const pool = THEME_MOBS[theme] || THEME_MOBS.catacomb;
       const n = 3 + ((R() * 3) | 0);
-      for (let k = 0; k < n; k++) inst.mobs.push({ type: pick2(pool, R), x: r.x + 80 + R() * (r.w - 160), y: r.y + 80 + R() * (r.h - 160) });
+      const roomGraces = inst.graces.filter((g) => g.room === i);
+      for (let k = 0, tries = 0; k < n && tries < 40; tries++) {
+        const mx = r.x + 80 + R() * (r.w - 160), my = r.y + 80 + R() * (r.h - 160);
+        if (roomGraces.some((g) => Math.hypot(g.x - mx, g.y - my) < 360)) continue;
+        inst.mobs.push({ type: pick2(pool, R), x: mx, y: my }); k++;
+      }
     }
     if (r.type === 'boss') {
       const nm = r.ids.length > 1 ? (BOSSES[r.ids[0]].name + (r.ids[0] === r.ids[1] ? 's' : ' & ' + BOSSES[r.ids[1]].name)) : BOSSES[r.ids[0]].name;
@@ -455,8 +468,24 @@ function addStructure(L, R) {
     }
   }
 }
+// spread out Sites of Grace that sit almost on top of each other at this map scale
+function spreadGraces() {
+  const MIN = 700;
+  for (let it = 0; it < 40; it++) {
+    let moved = false;
+    for (let i = 0; i < GRACE_W.length; i++) for (let j = i + 1; j < GRACE_W.length; j++) {
+      const a = GRACE_W[i], b = GRACE_W[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
+      if (d >= MIN) continue;
+      const push = Math.min(40, (MIN - d) / 2), ux = dx / d, uy = dy / d;
+      if (walkable(a.x - ux * push, a.y - uy * push)) { a.x -= ux * push; a.y -= uy * push; moved = true; }
+      if (walkable(b.x + ux * push, b.y + uy * push)) { b.x += ux * push; b.y += uy * push; moved = true; }
+    }
+    if (!moved) break;
+  }
+}
 function genWorld() {
   const R = rng(4242);
+  spreadGraces();
   // barrier segments
   for (const line of BARRIERS) for (let i = 0; i < line.length - 1; i++) {
     const [ax, ay] = toW(line[i]), [bx, by] = toW(line[i + 1]);
@@ -497,7 +526,7 @@ function genWorld() {
   for (const reg of RW) {
     if (reg.blocked) continue;
     const area = (reg.bb.x1 - reg.bb.x0) * (reg.bb.y1 - reg.bb.y0);
-    const base = area / (260 * 260);
+    const base = area / (400 * 400);
     for (const [type, dens, variant] of recipes[reg.biome] || []) {
       const n = Math.round(base * dens * 0.55);
       let made = 0, tries = 0;
@@ -512,7 +541,7 @@ function genWorld() {
         DECOR.push(d); made++;
       }
     }
-    const nt = Math.round(base * 6 * (TUFT_DENS[reg.biome] || 0));
+    const nt = Math.round(base * 4 * (TUFT_DENS[reg.biome] || 0));
     const tc = BIOMES[reg.biome].tuft;
     for (let i = 0, made = 0; i < nt * 2 && made < nt; i++) {
       const x = reg.bb.x0 + R() * (reg.bb.x1 - reg.bb.x0), y = reg.bb.y0 + R() * (reg.bb.y1 - reg.bb.y0);

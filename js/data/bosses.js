@@ -124,8 +124,8 @@ const BOSSES = {
     36, 120, 'demigod', merge(
       M.combo('gs', 3, { dmg: 34, range: 110, arc: 2.8, lunge: 240, wind: 0.65 }),
       M.volley('gr', { dmg: 26, n: 5, spread: 0.14, spd: 380, el: 'gravity', homing: 0.6, w: 2 }),
-      M.leap('lp', { dmg: 44, rad: 90, ring: 260, el: 'gravity' }), M.nova('gv', { dmg: 34, maxR: 220, el: 'gravity' }),
-      p2(M.leap('meteor', { dmg: 70, rad: 130, air: 1.6, wind: 1.0, min: 0, max: 900, ring: 320, el: 'gravity', w: 2.5, shake: 24 })),
+      M.leap('lp', { dmg: 44, rad: 90, ring: 260, wave: true, el: 'gravity' }), M.nova('gv', { dmg: 34, maxR: 220, el: 'gravity' }),
+      p2(M.leap('meteor', { dmg: 70, rad: 130, air: 1.6, wind: 1.0, min: 0, max: 900, ring: 320, wave: true, el: 'gravity', w: 2.5, shake: 24 })),
       p2(M.strikes('st', { dmg: 36, n: 6, rad: 70, el: 'gravity', spread: 160 })),
     ), { p2: 0.5, p2roar: true, rune: "Radahn's Great Rune", felled: 'DEMIGOD FELLED', mount: true, drop: 'starscourge' }),
   misbegotten_warrior: BD('Misbegotten Warrior', HU({ armor: '#8a6a40', body: '#6a4a2a', helm: 'lion', features: ['mane'], mane: '#c08a3a', weapon: WPN('great', 66, { w: 9, col: '#8a8478' }) }),
@@ -248,7 +248,7 @@ const BOSSES = {
   maliketh: BD('Maliketh, the Black Blade', HU({ armor: '#2a2428', body: '#1a1418', cape: '#2a2026', capeLong: 1.4, helm: 'maliketh', features: ['mane'], mane: '#3a3a3a', weapon: WPN('great', 84, { w: 7, col: '#2a2228', edge: '#c04050' }) }),
     20, 150, 'demigod', merge(
       M.combo('cl', 3, { dmg: 30, range: 70, arc: 2.4, lunge: 260, wind: 0.45 }), M.leap('lp', { dmg: 36, rad: 64 }), M.volley('rk', { dmg: 22, n: 5, el: 'phys', spread: 0.25 }),
-      p2(M.combo('bb', 3, { dmg: 38, range: 104, arc: 2.6, lunge: 280, wind: 0.5, el: 'death' })), p2(M.volley('dd', { dmg: 34, n: 3, el: 'death', spd: 420, pr: 14 })), p2(M.leap('dl', { dmg: 54, rad: 110, ring: 280, el: 'death', w: 2 })),
+      p2(M.combo('bb', 3, { dmg: 38, range: 104, arc: 2.6, lunge: 280, wind: 0.5, el: 'death' })), p2(M.volley('dd', { dmg: 34, n: 3, el: 'death', spd: 420, pr: 14 })), p2(M.leap('dl', { dmg: 54, rad: 110, ring: 280, wave: true, el: 'death', w: 2 })),
     ), { p2: 0.5, p2roar: true, felled: 'GREAT ENEMY FELLED', drop: 'blackblade' }),
   placidusax: BD('Dragonlord Placidusax', { kind: 'dragon', body: '#7a6a5a', wing: '#5a4a3a', belly: '#c0a080', eye: '#ffd060', heads: 2 },
     60, 90, 'god', merge(K.dragon(2.2, 42, { el: 'redlightning', strikes: true }), M.blink('tp', { next: 'br' }), M.beam('lb', { dmg: 16, len: 520, el: 'redlightning', sweep: 0.7 })), { felled: 'LEGEND FELLED' }),
@@ -256,7 +256,7 @@ const BOSSES = {
     14, 110, 'major', merge(K.caster(1, 30, { el: 'magic' }), M.volley('fb', { dmg: 24, n: 3, el: 'fire' }), M.strikes('bl', { dmg: 26, n: 6, el: 'blood', status: 'bleed' }), M.blink('bk', { next: 'vo' })), { ranged: { keep: 200, flee: 120 } }),
   godfrey: BD('Godfrey, First Elden Lord', HU({ armor: '#8a6a3a', body: '#6a4a2a', cape: '#7a5a2a', helm: 'lion', features: ['mane'], mane: '#c08a3a', weapon: WPN('axe', 100, { col: '#5a5a60', edge: '#d0b070' }) }),
     28, 100, 'god', merge(K.axe(1.5, 38, { ring: 220 }), M.stomps('stp', { dmg: 28, n: 4 }), M.charge('ch', { dmg: 34, spd: 560 }),
-      p2(M.combo('hl', 3, { dmg: 40, range: 70, arc: 2.0, lunge: 320, wind: 0.5 })), p2(M.leap('gr', { dmg: 60, rad: 100, ring: 300, air: 1.0 }))),
+      p2(M.combo('hl', 3, { dmg: 40, range: 70, arc: 2.0, lunge: 320, wind: 0.5 })), p2(M.leap('gr', { dmg: 60, rad: 100, ring: 300, wave: true, air: 1.0 }))),
     { p2: 0.5, p2roar: true, felled: 'GOD SLAIN', p2name: 'Hoarah Loux, Warrior' }),
   radagon: BD('Radagon of the Golden Order', HU({ armor: '#c8a050', body: '#a08040', helm: 'redhair', features: ['hair', 'halo'], hair: '#c03020', aura: '255,220,130', weapon: WPN('hammer', 80) }),
     24, 110, 'god', merge(M.combo('hm', 3, { dmg: 38, range: 96, arc: 2.4, lunge: 220, wind: 0.6, el: 'holy' }), M.slam('ho', { dmg: 46, off: 70, rad: 80, ring: 260, el: 'holy', glint: 0.9 }), M.strikes('hs', { dmg: 32, n: 8, el: 'holy', rad: 56, spread: 180 }), M.blink('bl', { next: 'hm1', w: 1.5 }), M.nova('nv', { dmg: 36, maxR: 260, el: 'holy' })),

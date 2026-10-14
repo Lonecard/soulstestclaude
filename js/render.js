@@ -470,16 +470,24 @@ function telegraphMarkers(e) {
     } else if (a.kind === 'leap' && e.leapTo) {
       ctx.strokeStyle = `rgba(220,60,40,${0.25 + 0.4 * k})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(e.leapTo.x, e.leapTo.y, a.rad, 0, TAU); ctx.stroke();
     } else if (a.kind === 'arrow' || a.kind === 'beam') {
-      ctx.strokeStyle = `rgba(255,80,60,${0.1 + 0.35 * k})`; ctx.lineWidth = a.kind === 'beam' ? a.width * 0.4 : 1;
+      ctx.strokeStyle = `rgba(255,80,60,${0.1 + 0.35 * k})`; ctx.lineWidth = a.kind === 'beam' ? a.width : 1;
       ctx.setLineDash([6, 6]); const L = a.kind === 'beam' ? a.len : 420;
       ctx.beginPath(); ctx.moveTo(e.x, e.y - 12); ctx.lineTo(e.x + Math.cos(e.face) * L, e.y - 12 + Math.sin(e.face) * L); ctx.stroke(); ctx.setLineDash([]);
     } else if (a.kind === 'breath') {
       ctx.fillStyle = `rgba(${elc(a.el)},${0.05 + 0.12 * k})`;
       ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.arc(e.x, e.y, a.range, e.face - a.cone, e.face + a.cone); ctx.closePath(); ctx.fill();
     } else if (a.kind === 'spin' || a.kind === 'stomps' || a.kind === 'nova') {
-      ctx.strokeStyle = `rgba(${a.el ? elc(a.el) : '255,80,60'},${0.15 + 0.4 * k})`; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(e.x, e.y, (a.rad || Math.min(a.maxR || 160, 160)) * (0.6 + 0.4 * k), 0, TAU); ctx.stroke();
+      // the marker is exactly the area the attack will cover
+      const R = a.kind === 'spin' ? a.rad : a.kind === 'stomps' ? a.maxR + (a.n - 1) * 30 : a.maxR;
+      ctx.fillStyle = `rgba(${a.el ? elc(a.el) : '200,40,30'},${0.05 + 0.1 * k})`;
+      ctx.beginPath(); ctx.arc(e.x, e.y, R, 0, TAU); ctx.fill();
+      ctx.strokeStyle = `rgba(${a.el ? elc(a.el) : '255,80,60'},${0.25 + 0.45 * k})`; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(e.x, e.y, R, 0, TAU); ctx.stroke();
     }
+  }
+  if (e.state === 'active' && a.kind === 'spin') {
+    ctx.strokeStyle = `rgba(${a.el ? elc(a.el) : '255,80,60'},0.45)`; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(e.x, e.y, a.rad, 0, TAU); ctx.stroke();
   }
   if (e.state === 'active' && a.kind === 'leap' && e.leapTo) { ctx.fillStyle = 'rgba(200,40,30,0.22)'; ctx.beginPath(); ctx.arc(e.leapTo.x, e.leapTo.y, a.rad, 0, TAU); ctx.fill(); }
 }
@@ -567,6 +575,17 @@ function drawHazards() {
       ctx.restore();
       glowAt(s.x, s.y, s.r * 1.6, col, 0.6 * k);
     }
+  }
+  // breath: the burning cone is drawn exactly where it deals damage
+  for (const e of G.enemies) {
+    if (e.dead || !e.atk || e.atk.kind !== 'breath' || e.state !== 'active') continue;
+    const a = e.atk, col = elc(a.el);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(e.x, e.y, e.r * 0.5, e.x, e.y, a.range);
+    g.addColorStop(0, `rgba(${col},0.55)`); g.addColorStop(0.7, `rgba(${col},0.3)`); g.addColorStop(1, `rgba(${col},0.05)`);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.arc(e.x, e.y, a.range, e.face - a.cone, e.face + a.cone); ctx.closePath(); ctx.fill();
+    ctx.restore();
   }
   for (const e of G.enemies) {
     if (e.dead || !e.atk || e.atk.kind !== 'beam' || e.state !== 'active') continue;

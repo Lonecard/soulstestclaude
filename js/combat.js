@@ -73,18 +73,24 @@ function makeEnemy(id, x, y, o = {}) {
   if (def.mimic) e.mimic = true;
   return e;
 }
+// regular enemies never spawn near Sites of Grace, dungeon entrances or field boss arenas
+function spawnBlocked(x, y) {
+  if (GRACE_W.some((g) => Math.abs(g.x - x) < 900 && Math.hypot(g.x - x, g.y - y) < 900)) return true;
+  if (FIELD_BOSSES.some(([id, bx, by]) => Math.hypot(bx * MU - x, by * MU - y) < 1000)) return true;
+  if (ENTRANCES.some((e) => Math.hypot(e.x - x, e.y - y) < 350)) return true;
+  return false;
+}
 function spawnOverworldMobs(list) {
   const R = rng(777);
   for (const reg of RW) {
     if (reg.blocked || !REGION_MOBS[reg.id] && !REGION_MOBS[reg.biome]) continue;
     const pool = REGION_MOBS[reg.id] || REGION_MOBS[reg.biome];
     const area = (reg.bb.x1 - reg.bb.x0) * (reg.bb.y1 - reg.bb.y0);
-    const n = Math.round(area / (900 * 900) * 1.4);
+    const n = Math.round(area / (1500 * 1500) * 1.6);
     let made = 0, tries = 0;
     while (made < n && tries++ < n * 8) {
       const x = reg.bb.x0 + R() * (reg.bb.x1 - reg.bb.x0), y = reg.bb.y0 + R() * (reg.bb.y1 - reg.bb.y0);
-      if (!pip(x, y, reg.pts) || pointBlocked(x, y)) continue;
-      if (GRACE_W.some((g) => Math.hypot(g.x - x, g.y - y) < 420)) continue;
+      if (!pip(x, y, reg.pts) || pointBlocked(x, y) || spawnBlocked(x, y)) continue;
       const type = pool[(R() * pool.length) | 0];
       const pack = type === 'wolf' || type === 'rotdog' || type === 'snow_wolf' || type === 'demi' ? 2 + ((R() * 2) | 0) : 1;
       for (let k = 0; k < pack; k++) list.push(makeEnemy(type, x + k * 30, y + k * 20));
@@ -99,7 +105,7 @@ function spawnOverworldMobs(list) {
     const n = L.kind === 'fort' ? 5 : 3;
     for (let k = 0; k < n; k++) {
       const a = R() * TAU, d = 60 + R() * 150, x = L.x + Math.cos(a) * d, y = L.y + Math.sin(a) * d;
-      if (pointBlocked(x, y) || GRACE_W.some((g) => Math.hypot(g.x - x, g.y - y) < 260)) continue;
+      if (pointBlocked(x, y) || spawnBlocked(x, y)) continue;
       list.push(makeEnemy(pool[(R() * pool.length) | 0], x, y));
     }
   }
@@ -840,7 +846,6 @@ function updateEnemy(e, dt) {
     case 'roar':
       e.face = toP;
       if (e.t > 0.45 && e.t - dt <= 0.45) {
-        addRing(e.x, e.y, { r0: 10, maxR: 300, spd: 520, th: 22, push: 360, col: def.el ? elc(def.el) : '255,140,60' });
         burst(e.x, e.y - 10, 80, '#ff8a3a', 280, 1.1, 3.5, 0, true);
       }
       if (e.t > 1.8) { e.state = 'chase'; e.t = 0; e.cd = 0.2; }
@@ -853,7 +858,8 @@ function updateEnemy(e, dt) {
         e.face += angDiff(e.face, a) * Math.min(1, dt * 3);
         moveEnt(e, Math.cos(a) * 40 * dt, Math.sin(a) * 40 * dt); e.walk += dt * 2.5;
       }
-      if (playerAlive && d < def.aggro * (P.mounted ? 1.15 : 1)) { e.state = 'chase'; e.t = 0; if (e.boss && !e.inst) { startDrone(e.def.drone || 60); if (def.mount) sfx('neigh'); } }
+      const calm = G.safe || (!e.boss && G.bossBusy);
+      if (playerAlive && !calm && d < def.aggro * (P.mounted ? 1.15 : 1)) { e.state = 'chase'; e.t = 0; if (e.boss && !e.inst) { startDrone(e.def.drone || 60); if (def.mount) sfx('neigh'); } }
       return;
     }
     case 'return': {
@@ -872,6 +878,8 @@ function updateEnemy(e, dt) {
       return;
     case 'chase': {
       if (!playerAlive) { if (!e.inst || !e.boss) { e.state = 'return'; e.t = 0; } return; }
+      // regular foes back off during boss fights; nothing chases you onto a Site of Grace
+      if ((!e.boss && G.bossBusy) || (G.safe && G.arenaFight !== e.key)) { e.state = 'return'; e.t = 0; e.atk = null; return; }
       const leash = e.boss ? 1000 : 600;
       if (G.arenaFight !== e.key || !e.key) {
         if (Math.hypot(e.home.x - e.x, e.home.y - e.y) > leash) { e.state = 'return'; e.t = 0; return; }
@@ -904,6 +912,7 @@ function updateEnemy(e, dt) {
       return;
     }
     case 'windup': {
+      if (!e.boss && G.bossBusy) { e.state = 'return'; e.t = 0; e.atk = null; return; }
       const a = e.atk;
       if (a.track) e.face += angDiff(e.face, toP) * Math.min(1, dt * a.track);
       if (a.glint && !e.glinted && e.t >= a.glint * windMul(e)) { e.glinted = true; sfx('glint'); }
@@ -1004,9 +1013,9 @@ function updateActive(e, a, dt, d, toP) {
     e.air = Math.sin(k * Math.PI);
     if (k >= 1 && !e.hitDone) {
       e.air = 0;
-      if (Math.hypot(P.x - e.x, P.y - e.y) < a.rad + P.r) enemyHit(e, a.dmg, toP, a);
+      if (Math.hypot(P.x - e.x, P.y - e.y) < a.rad + P.r * 0.4) enemyHit(e, a.dmg, toP, a);
       e.hitDone = true;
-      addRing(e.x, e.y, { r0: a.rad * 0.6, maxR: a.ring || (e.phase2 ? 250 : 180), spd: 300, th: 15, dmg: 16 * e.dmgMul, push: 180, col: a.el ? elc(a.el) : '230,200,140', el: a.el });
+      if (a.wave && a.ring) addRing(e.x, e.y, { r0: a.rad, maxR: a.ring, spd: 300, th: 15, dmg: 16 * e.dmgMul, push: 180, col: a.el ? elc(a.el) : '230,200,140', el: a.el });
       burst(e.x, e.y, 40, a.el ? elHex(a.el) : 'rgba(140,120,90,0.8)', 220, 0.7, 5, 0, !!a.el);
       decal(e.x, e.y + 6, a.rad * 0.7, 'rgba(20,16,12,0.5)');
       sfx('slam'); shake(a.shake || 12);
@@ -1014,34 +1023,34 @@ function updateActive(e, a, dt, d, toP) {
   } else if (kind === 'circle') {
     if (!e.hitDone) {
       const cx = e.x + Math.cos(e.face) * a.off, cy = e.y + Math.sin(e.face) * a.off;
-      if (Math.hypot(P.x - cx, P.y - cy) < a.rad + P.r) enemyHit(e, a.dmg, toP, a);
+      if (Math.hypot(P.x - cx, P.y - cy) < a.rad + P.r * 0.4) enemyHit(e, a.dmg, toP, a);
       e.hitDone = true;
       const col = a.el ? elHex(a.el) : 'rgba(140,120,90,0.8)';
       burst(cx, cy, 30, col, 200, 0.7, 4, 0, !!a.el);
       decal(cx, cy + 4, a.rad * 0.6, 'rgba(20,16,12,0.45)');
       sfx('slam'); shake(a.shake || 8);
-      if (a.ring || (e.boss && e.phase2)) addRing(cx, cy, { r0: 20, maxR: a.ring || 150, spd: 280, th: 14, dmg: 15 * e.dmgMul, push: 150, col: a.el ? elc(a.el) : '220,190,140', el: a.el });
+      if (a.wave && a.ring) addRing(cx, cy, { r0: 20, maxR: a.ring || 150, spd: 280, th: 14, dmg: 15 * e.dmgMul, push: 150, col: a.el ? elc(a.el) : '220,190,140', el: a.el });
     }
   } else if (kind === 'spin') {
     e.tick -= dt;
     if (e.tick <= 0) { e.tick = 0.26; e.hitDone = false; }
     moveEnt(e, Math.cos(toP) * (a.chase || 70) * dt, Math.sin(toP) * (a.chase || 70) * dt);
     e.face += dt * 14;
-    if (!e.hitDone && d < a.rad + P.r) enemyHit(e, a.dmg, toP, a);
+    if (!e.hitDone && d < a.rad + P.r * 0.4) enemyHit(e, a.dmg, toP, a);
     if (Math.random() < 0.8) { const ang = rand(0, TAU); G.particles.push({ x: e.x + Math.cos(ang) * a.rad, y: e.y + Math.sin(ang) * a.rad * 0.7, vx: -Math.sin(ang) * 200, vy: Math.cos(ang) * 140, life: 0.3, max: 0.3, size: 2, col: a.el ? elHex(a.el) : 'rgba(220,220,230,0.6)', grav: 0, streak: true }); }
   } else if (kind === 'breath') {
     e.face += angDiff(e.face, toP) * Math.min(1, dt * a.track);
     const mx = e.x + Math.cos(e.face) * e.r * 1.2, my = e.y - 18 + Math.sin(e.face) * e.r * 1.0;
     const cols = { fire: ['#ff7a2a', '#ffb347', '#ffd27a'], frost: ['#dff4ff', '#a8d8ff', '#ffffff'], magic: ['#8ab8ff', '#c0d8ff', '#6a90ff'], rot: ['#e05a2a', '#c04020', '#ff8040'], poison: ['#8ac050', '#a0d060', '#6a9a3a'], redlightning: ['#ff5040', '#ff9080', '#ffd0c0'] }[a.el] || ['#ff7a2a', '#ffb347'];
-    for (let i = 0; i < 5; i++) {
-      const ang = e.face + rand(-a.cone, a.cone), s = rand(220, 380);
-      G.particles.push({ x: mx, y: my, vx: Math.cos(ang) * s, vy: Math.sin(ang) * s, life: rand(0.4, 0.7), max: 0.7, size: rand(4, 9), col: pick(cols), grav: 0, glow: true, grow: true });
+    for (let i = 0; i < 12; i++) {
+      const ang = e.face + rand(-a.cone, a.cone) * 0.9, life = rand(0.32, 0.5), s = ((a.range - e.r * 1.2) / life) * rand(0.55, 1);
+      G.particles.push({ x: mx, y: my, vx: Math.cos(ang) * s, vy: Math.sin(ang) * s, life, max: life, size: rand(6, 14), col: pick(cols), grav: 0, glow: true, grow: true, nodrag: true });
     }
     e.tick -= dt;
     if (e.tick <= 0) {
       e.tick = 0.15;
-      const ang = Math.atan2(P.y - my, P.x - mx), dd = Math.hypot(P.x - mx, P.y - my);
-      if (dd < a.range && Math.abs(angDiff(e.face, ang)) < a.cone + 0.1) hurtPlayer(a.dmg * e.dmgMul, ang, 90, e, a.el, a.status);
+      const ang = Math.atan2(P.y - e.y, P.x - e.x), dd = Math.hypot(P.x - e.x, P.y - e.y);
+      if (dd < a.range && Math.abs(angDiff(e.face, ang)) < a.cone) hurtPlayer(a.dmg * e.dmgMul, ang, 90, e, a.el, a.status);
     }
   } else if (kind === 'beam') {
     const k = clamp(e.t / a.act, 0, 1);
@@ -1051,7 +1060,7 @@ function updateActive(e, a, dt, d, toP) {
     if (e.tick <= 0) {
       e.tick = 0.18;
       const bx = e.x + Math.cos(e.face) * a.len, by = e.y + Math.sin(e.face) * a.len;
-      if (segDist(P.x, P.y, e.x, e.y, bx, by) < a.width / 2 + P.r) hurtPlayer(a.dmg * e.dmgMul, e.face, 100, e, a.el, a.status);
+      if (segDist(P.x, P.y, e.x, e.y, bx, by) < a.width / 2 + P.r * 0.4) hurtPlayer(a.dmg * e.dmgMul, e.face, 100, e, a.el, a.status);
     }
   } else if (a.range && !e.hitDone) {
     if (d < a.range + P.r && Math.abs(angDiff(e.face, toP)) < a.arc / 2 + 0.15) enemyHit(e, a.dmg, e.face, a);
@@ -1096,7 +1105,9 @@ function updateHazards(dt) {
         if (p.hover <= 0) { p.vx = Math.cos(p.ang) * 640; p.vy = Math.sin(p.ang) * 640; sfx('dagger'); }
       }
     } else {
-      if (p.homing) {
+      p.age = (p.age || 0) + dt;
+      if (p.homing && !p.passed && p.age < 1.1) {
+        if ((P.x - p.x) * p.vx + (P.y - 10 - p.y) * p.vy < 0) p.passed = true;
         const want = Math.atan2(P.y - 10 - p.y, P.x - p.x), cur = Math.atan2(p.vy, p.vx), sp = Math.hypot(p.vx, p.vy);
         const na = cur + clamp(angDiff(cur, want), -p.homing * dt, p.homing * dt);
         p.vx = Math.cos(na) * sp; p.vy = Math.sin(na) * sp;
@@ -1159,7 +1170,7 @@ function updateHazards(dt) {
       s.t -= dt;
       if (s.t <= 0) {
         s.boom = 0.35;
-        if (Math.hypot(P.x - s.x, P.y - s.y) < s.r + P.r * 0.5) hurtPlayer(s.dmg, Math.atan2(P.y - s.y, P.x - s.x), 120, null, s.el, s.status);
+        if (Math.hypot(P.x - s.x, P.y - s.y) < s.r + P.r * 0.4) hurtPlayer(s.dmg, Math.atan2(P.y - s.y, P.x - s.x), 120, null, s.el, s.status);
         burst(s.x, s.y, 26, elHex(s.el), 220, 0.6, 3.5, 0, true);
         sfx(s.el === 'lightning' || s.el === 'redlightning' ? 'clang' : 'slam'); shake(5);
       }
@@ -1194,6 +1205,8 @@ function update(dt) {
   if (G.hitstop > 0) { G.hitstop -= dt; return; }
 
   updatePlayer(dt);
+  G.bossBusy = !!G.arenaFight || G.activeBosses.length > 0;
+  G.safe = G.graces.some((g) => g.inst === G.inst && g.found && !(g.afterBoss && !G.defeated.has(g.afterBoss)) && Math.abs(g.x - P.x) < 450 && Math.hypot(g.x - P.x, g.y - P.y) < 450);
   for (const e of G.enemies) updateEnemy(e, dt);
   separate();
   updateHazards(dt);
@@ -1208,7 +1221,7 @@ function update(dt) {
   for (let i = G.particles.length - 1; i >= 0; i--) {
     const p = G.particles[i];
     p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (p.grav || 0) * dt;
-    p.vx *= 0.96; if (!p.grav) p.vy *= 0.96;
+    if (!p.nodrag) { p.vx *= 0.96; if (!p.grav) p.vy *= 0.96; }
     p.life -= dt;
     if (p.life <= 0) G.particles.splice(i, 1);
   }

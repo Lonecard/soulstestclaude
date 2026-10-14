@@ -2,7 +2,7 @@
 /* The Lands Between (base game), laid out on a 0..100 map grid that mirrors the real world map.
    1 map unit = MU world units. Positions are approximate to the in-game map. */
 
-const MU = 170;
+const MU = 300;
 const OW = { w: 100 * MU, h: 100 * MU };
 
 // ---------------------------------------------------------------- regions
