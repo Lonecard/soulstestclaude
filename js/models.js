@@ -716,6 +716,7 @@ function drawBird(e, tel, pose) {
   if (tel) { ctx.strokeStyle = `rgba(255,60,40,${tel * 0.85})`; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(e.x, by, r * 0.85, r, 0, 0, TAU); ctx.stroke(); }
 }
 function drawSerpent(e, tel) {
+  const a = e.atk, atkOn = a && (e.state === 'windup' || e.state === 'active');
   const L = e.def.look, r = e.r, flash = e.flash > 0;
   const tr = e.trail.length > 4 ? e.trail : [{ x: e.x, y: e.y }];
   const segs = 14, col = flash ? '#ffffff' : L.body;
@@ -728,13 +729,30 @@ function drawSerpent(e, tel) {
     const a = e.face + Math.PI + Math.sin(G.time * 1.6 + i * 0.6) * 0.5;
     pts.push(idle ? { x: e.x + Math.cos(a) * i * r * 0.32, y: e.y + Math.sin(a) * i * r * 0.22 } : { x: t.x + Math.sin(G.time * 2 + i) * 4, y: t.y });
   }
+  // spinning tail whip: a real, visible tail sweeping the whole hit radius
+  if (atkOn && a.kind === 'spin') {
+    const ta = e.face + Math.PI, R = a.rad, col = a.el ? elc(a.el) : '230,210,180';
+    if (e.state === 'active') drawTrail(e.x, e.y - r * 0.3, ta - 1.6, ta, r * 0.5, R, col, 1);
+    const reach = e.state === 'active' ? R : r * 1.6;
+    for (let i = 10; i >= 0; i--) {
+      const k = i / 10, bend = Math.sin(k * 2.2) * 0.35 * (e.state === 'active' ? 1 : 0.3);
+      const tx = e.x + Math.cos(ta - bend) * reach * k, ty = e.y - r * 0.3 + Math.sin(ta - bend) * reach * k * 0.85;
+      const w = r * (0.7 - k * 0.5);
+      drawShadow(tx, ty + r * 0.3, w * 0.8, 0.18);
+      ball(tx, ty, w, w * 0.8, flash ? '#ffffff' : i % 2 ? L.body : shade(L.body, -0.15));
+      if (L.glow && i % 3 === 0) glowAt(tx, ty, w * 1.2, L.glow, 0.25);
+    }
+  }
   for (let i = segs - 1; i >= 0; i--) {
     const p = pts[i], w = r * (0.8 - i * 0.045);
     drawShadow(p.x, p.y, w * 0.8, 0.2);
     ball(p.x, p.y - r * 0.4, w, w * 0.8, i % 2 ? col : (flash ? '#ffffff' : shade(L.body, -0.12)));
     if (L.nebula && i % 3 === 0) glowAt(p.x, p.y - r * 0.4, w * 1.4, '255,230,160', 0.35);
   }
-  const hx = e.x, hy = e.y - r * 0.6 - e.air * 80, c = Math.cos(e.face), s = Math.sin(e.face), px = -s, py = c;
+  let lunge = 0;
+  if (atkOn && a.range && !a.kind) lunge = e.state === 'active' ? a.range * 0.55 : -r * 0.3 * clamp(e.t / Math.max(0.01, a.wind), 0, 1);
+  const hx = e.x + Math.cos(e.face) * lunge, hy = e.y - r * 0.6 - e.air * 80 + Math.sin(e.face) * lunge, c = Math.cos(e.face), s = Math.sin(e.face), px = -s, py = c;
+  if (lunge > 0) { ctx.strokeStyle = flash ? '#ffffff' : L.body; ctx.lineWidth = r * 0.9; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(e.x, e.y - r * 0.6); ctx.lineTo(hx, hy); ctx.stroke(); ctx.lineCap = 'butt'; }
   if (L.head === 'rykard') {
     ball(hx + c * r * 0.4, hy + s * r * 0.3, r * 0.9, r * 0.8, flash ? '#ffffff' : '#5a3a30');
     ball(hx + c * r * 0.75, hy + s * r * 0.55 - r * 0.1, r * 0.4, r * 0.38, flash ? '#ffffff' : '#c8a088');

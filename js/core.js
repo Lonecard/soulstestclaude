@@ -113,7 +113,7 @@ const G = {
 const cam = { x: 0, y: 0 };
 const P = {
   x: 0, y: 0, r: 12, face: -Math.PI / 2, vx: 0, vy: 0, air: 0,
-  hp: 0, maxHp: 0, hpLag: 0, st: 0, maxSt: 0, stDelay: 0, fp: 0, maxFp: 0, flasks: 4, maxFlasks: 4, seeds: 0,
+  hp: 0, maxHp: 0, hpLag: 0, st: 0, maxSt: 0, stDelay: 0, fp: 0, maxFp: 0, flasks: 4, maxFlasks: 4, seeds: 0, fpFlasks: 1, maxFpFlasks: 1, cerulean: 1, healKind: 'hp', totalFlasks: 5,
   vig: 10, mnd: 10, end: 10, str: 10, runes: 0, greatRunes: [],
   weapon: 'longsword', owned: ['longsword'], wlv: {},
   state: 'free', t: 0, atk: null, atkEl: null, skill: null, combo: 0, buffer: null, bufferT: 0, hitSet: null, swung: false,

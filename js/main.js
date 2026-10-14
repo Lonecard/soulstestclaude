@@ -10,7 +10,7 @@ const OLD_SAVE_KEY = 'ashenreach_save_v3'; // older map scale: keep progress, dr
 function save() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      vig: P.vig, mnd: P.mnd, end: P.end, str: P.str, runes: P.runes, seeds: P.seeds, weapon: P.weapon, owned: P.owned, wlv: P.wlv,
+      vig: P.vig, mnd: P.mnd, end: P.end, str: P.str, runes: P.runes, seeds: P.seeds, cerulean: P.cerulean, weapon: P.weapon, owned: P.owned, wlv: P.wlv,
       greatRunes: P.greatRunes, grace: graceKey(G.graces[G.graceIdx]), found: G.graces.filter((g) => g.found).map(graceKey),
       defeated: [...G.defeated], defeatedTypes: [...G.defeatedTypes], taken: [...G.taken], bloodstain: G.bloodstain, clock: G.clock, sound: AU.on,
     }));
@@ -22,7 +22,7 @@ function load() {
     if (!s) { s = JSON.parse(localStorage.getItem(OLD_SAVE_KEY) || 'null'); if (s) s.bloodstain = null; }
     if (!s) return false;
     for (const k of ['vig', 'mnd', 'end', 'str']) P[k] = s[k] || 10;
-    P.runes = s.runes || 0; P.seeds = s.seeds || 0; P.wlv = s.wlv || {};
+    P.runes = s.runes || 0; P.seeds = s.seeds || 0; P.cerulean = s.cerulean ?? 1; P.wlv = s.wlv || {};
     if (Array.isArray(s.owned)) P.owned = s.owned.filter((w) => WEAPONS[w]);
     if (!P.owned.length) P.owned = ['longsword'];
     P.weapon = P.owned.includes(s.weapon) ? s.weapon : P.owned[0];
@@ -80,9 +80,11 @@ function refreshGrace() {
   $('runesHeld').textContent = P.runes;
   $('cost').textContent = c;
   for (const k of ['vig', 'mnd', 'end', 'str']) $('s_' + k).textContent = P[k];
-  $('dHp').textContent = P.maxHp; $('dFp').textContent = P.maxFp; $('dSt').textContent = P.maxSt; $('dFl').textContent = P.maxFlasks;
+  $('dHp').textContent = P.maxHp; $('dFp').textContent = P.maxFp; $('dSt').textContent = P.maxSt; $('dFl').textContent = P.maxFlasks + ' + ' + P.maxFpFlasks;
+  $('s_flask').textContent = P.maxFlasks + '/' + P.maxFpFlasks;
+  $('flaskHp').disabled = P.cerulean <= 0; $('flaskFp').disabled = P.cerulean >= P.totalFlasks;
   $('gRunes').textContent = P.greatRunes.length ? P.greatRunes.join(' · ') : 'None yet';
-  document.querySelectorAll('#tab-level .stat button').forEach((b) => (b.disabled = P.runes < c));
+  document.querySelectorAll('#tab-level button[data-stat]').forEach((b) => (b.disabled = P.runes < c));
   $('btnTime').textContent = G.inst ? 'Time does not pass here' : isNight() ? 'Pass time until morning' : 'Pass time until nightfall';
   $('btnTime').disabled = !!G.inst;
   // equipment
@@ -128,13 +130,20 @@ function refreshGrace() {
     }
   }
 }
-document.querySelectorAll('#tab-level .stat button').forEach((b) => b.addEventListener('click', () => {
+document.querySelectorAll('#tab-level button[data-stat]').forEach((b) => b.addEventListener('click', () => {
   const c = levelCost(); if (P.runes < c) return;
   P.runes -= c; P[b.dataset.stat]++;
   recalcStats(); P.hp = P.hpLag = P.maxHp; P.st = P.maxSt; P.fp = P.maxFp;
   initAudio(); sfx('runes');
   refreshGrace(); save();
 }));
+function shiftFlask(d) {
+  P.cerulean = clamp(P.cerulean + d, 0, P.totalFlasks);
+  recalcStats(); P.flasks = P.maxFlasks; P.fpFlasks = P.maxFpFlasks;
+  initAudio(); sfx('item'); refreshGrace(); save();
+}
+$('flaskHp').addEventListener('click', () => shiftFlask(-1));
+$('flaskFp').addEventListener('click', () => shiftFlask(1));
 $('btnTime').addEventListener('click', () => {
   G.clock = isNight() ? 8 : 20;
   respawnAtGrace(); refreshGrace(); sfx('grace'); save();

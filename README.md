@@ -67,7 +67,8 @@ What's in the world:
 | Attack / Heavy | Attack / Heavy buttons | J or click / K or right-click |
 | Skill | Skill (star) button | L |
 | Roll / Sprint | Tap / hold Roll | Tap / hold Space (Shift sprints) |
-| Flask | Flask button | E |
+| Crimson Tears (HP flask) | Orange flask button | E |
+| Cerulean Tears (FP flask) | Blue flask button | R |
 | Lock-on | Lock button | Q / Tab |
 | Interact | Prompt button | F |
 | Torrent / Map / Pause | Top-right buttons | T / M / Esc |

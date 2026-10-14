@@ -2,7 +2,7 @@
 /* Input: touch joystick + buttons, keyboard, mouse. */
 
 const keys = new Set();
-const input = { attack: false, heavy: false, roll: false, heal: false, lock: false, ctx: false, skill: false, whistle: false };
+const input = { attack: false, heavy: false, roll: false, heal: false, fpheal: false, lock: false, ctx: false, skill: false, whistle: false };
 let spaceDown = 0;
 const joy = { id: null, bx: 0, by: 0, x: 0, y: 0, R: 60 };
 const buttons = [];
@@ -12,6 +12,7 @@ const B = {
   heavy: btn('heavy', 'HEAVY', { onDown: () => (input.heavy = true) }),
   roll: btn('roll', 'ROLL', { onUp: (b) => { if (performance.now() - b.t0 < 280) input.roll = true; } }),
   heal: btn('heal', 'FLASK', { onDown: () => (input.heal = true) }),
+  fpheal: btn('fpheal', 'FP', { onDown: () => (input.fpheal = true) }),
   lock: btn('lock', 'LOCK', { onDown: () => (input.lock = true) }),
   skill: btn('skill', 'SKILL', { onDown: () => (input.skill = true) }),
   whistle: btn('whistle', 'TORRENT', { small: true, onDown: () => (input.whistle = true) }),
@@ -38,6 +39,7 @@ function layoutButtons() {
   Object.assign(B.roll, { x: ax - R * 2.6, y: ay + R * 0.25, r: R * 0.88 });
   Object.assign(B.heavy, { x: ax - R * 0.15, y: ay - R * 2.45, r: R * 0.8 });
   Object.assign(B.heal, { x: ax - R * 2.3, y: ay - R * 2.05, r: R * 0.72 });
+  Object.assign(B.fpheal, { x: ax - R * 3.9, y: ay - R * 1.25, r: R * 0.6 });
   Object.assign(B.lock, { x: ax + R * 0.35, y: ay - R * 4.3, r: R * 0.6 });
   Object.assign(B.ctx, { x: W / 2, y: H * 0.62, r: R * 0.75 });
   Object.assign(B.skill, { x: ax - R * 1.95, y: ay - R * 4.15, r: R * 0.66 });
@@ -107,7 +109,8 @@ window.addEventListener('keydown', (e) => {
   if (G.state !== 'play') return;
   if (k === 'KeyJ') input.attack = true;
   if (k === 'KeyK') input.heavy = true;
-  if (k === 'KeyE' || k === 'KeyR') input.heal = true;
+  if (k === 'KeyE') input.heal = true;
+  if (k === 'KeyR') input.fpheal = true;
   if (k === 'KeyQ' || k === 'Tab') input.lock = true;
   if (k === 'KeyF' || k === 'Enter') input.ctx = true;
   if (k === 'KeyL' || k === 'KeyU') input.skill = true;

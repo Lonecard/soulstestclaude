@@ -62,6 +62,10 @@ button:disabled { opacity: .35; }
         border-top: 1px solid rgba(201,169,90,.15); text-align: left; }
 .stat button { margin: 4px 0; padding: 6px 0; font-size: 20px; min-height: 40px; }
 .stat small { opacity: .6; font-size: 11px; }
+.stat.flask { grid-template-columns: 1fr 46px 92px; }
+.stat .btns2 { display: flex; gap: 4px; }
+.stat .btns2 button { flex: 1; font-size: 15px; }
+.crim { color: #e3743a; } .ceru { color: #7aa8ff; }
 
 
 /* grace menu: tabs, lists, close button */

@@ -455,7 +455,7 @@ function drawPlayer() {
     lift: lift + (P.mounted ? 14 : 0) + rollLift,
     weapon: { type: w.rtype, len: w.len, w: w.w, col: w.blade, edge: w.edge, hilt: w.hilt, glow: w.glow }, pose,
   });
-  if (P.state === 'heal') glowAt(P.x + Math.cos(P.face + 0.9) * 10, P.y - 16 - lift + Math.sin(P.face + 0.9) * 7, 16, '255,200,90', 0.9);
+  if (P.state === 'heal') glowAt(P.x + Math.cos(P.face + 0.9) * 10, P.y - 16 - lift + Math.sin(P.face + 0.9) * 7, 16, P.healKind === 'fp' ? '120,170,255' : '255,200,90', 0.9);
   ctx.restore();
 }
 function telegraphMarkers(e) {
@@ -484,6 +484,16 @@ function telegraphMarkers(e) {
       ctx.strokeStyle = `rgba(${a.el ? elc(a.el) : '255,80,60'},${0.25 + 0.45 * k})`; ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.arc(e.x, e.y, R, 0, TAU); ctx.stroke();
     }
+  }
+  // weapon-less creatures: show the exact melee wedge they are about to bite/claw/sweep
+  const noWpn = !['humanoid', 'mounted', 'troll'].includes(e.def.look.kind);
+  if (a.range && !a.kind && noWpn && (e.state === 'windup' || e.state === 'active')) {
+    const R = a.range + P.r, half = a.arc / 2 + 0.15, k = e.state === 'active' ? 1 : clamp(e.t / (a.wind * windMul(e)), 0, 1);
+    const col = a.el ? elc(a.el) : '255,80,60';
+    ctx.fillStyle = `rgba(${col},${e.state === 'active' ? 0.3 : 0.05 + 0.12 * k})`;
+    ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.arc(e.x, e.y, R, e.face - half, e.face + half); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = `rgba(${col},${0.2 + 0.45 * k})`; ctx.lineWidth = 2; ctx.stroke();
+    if (e.state === 'active') drawTrail(e.x, e.y - 10, e.face - half, e.face + half, e.r * 0.6, R, col, 1);
   }
   if (e.state === 'active' && a.kind === 'spin') {
     ctx.strokeStyle = `rgba(${a.el ? elc(a.el) : '255,80,60'},0.45)`; ctx.lineWidth = 2;
@@ -530,7 +540,7 @@ function drawEnemy(e) {
     case 'mounted': drawMounted(e, tel, pose); break;
     case 'dragon': drawDragon(e, tel, pose); break;
     case 'bird': drawBird(e, tel, pose); break;
-    case 'serpent': drawSerpent(e, tel); break;
+    case 'serpent': drawSerpent(e, tel, pose); break;
     case 'flower': drawFlower(e, tel); break;
     case 'boat': drawBoat(e, tel); break;
     case 'astel': drawAstel(e, tel); break;
@@ -544,6 +554,21 @@ function drawEnemy(e) {
 }
 
 // ---------------------------------------------------------------- hazards
+function drawFieldArena(c) {
+  // golden fog wall ringing a field boss's ground
+  const n = 72;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * TAU, w = Math.sin(G.time * 1.3 + i * 1.7) * 0.5 + 0.5;
+    const x = c.x + Math.cos(a) * c.r, y = c.y + Math.sin(a) * c.r;
+    if (Math.abs(x - cam.x) > W / SCALE + 200 || Math.abs(y - cam.y) > H / SCALE + 200) continue;
+    glowAt(x, y - 20, 70 + w * 30, '255,200,130', 0.16 + w * 0.08);
+    if (Math.random() < 0.08) G.particles.push({ x: x + rand(-20, 20), y, vx: rand(-8, 8), vy: rand(-40, -15), life: 1.2, max: 1.2, size: 3, col: 'rgba(255,215,150,0.8)', grav: 0, glow: true });
+  }
+  ctx.strokeStyle = 'rgba(255,205,140,0.35)'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, TAU); ctx.stroke();
+  ctx.restore();
+}
 function drawHazards() {
   for (const p of G.pools) {
     const k = p.grow * Math.min(1, p.life / 0.6);
@@ -863,6 +888,7 @@ function render(dt = 0.016) {
   if (!G.inst) drawErdtree(v);
 
   drawHazards();
+  if (G.arenaCirc && !G.inst) drawFieldArena(G.arenaCirc);
   drawParticles();
   if (!G.inst) drawCloudShadows(v, ambDraw);
 

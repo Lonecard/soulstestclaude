@@ -196,8 +196,8 @@ const BOSSES = {
     28, 90, 'major', merge(K.halberd(1.5, 32, { el: 'blood', status: 'bleed' }), M.pool('bf', { dmg: 10, rad: 90, n: 3, el: 'blood', status: 'bleed' }), M.nova('nv', { dmg: 32, maxR: 220, el: 'blood' }))),
   // ======================= Mountaintops / Snowfield / Haligtree
   fire_giant: BD('Fire Giant', { kind: 'troll', skin: '#8a6a50', cloth: '#5a3a2a', variant: 'giant', beard: '#c08040' },
-    62, 70, 'demigod', merge(K.colossal(2.5, 40, { el: 'fire' }), M.volley('fb', { dmg: 30, n: 3, el: 'fire', spd: 260, pr: 16 }), M.breath('br', { dmg: 15, range: 300, el: 'fire' }), M.charge('rl', { dmg: 44, spd: 480, rad: 60 }), p2(M.nova('fl', { dmg: 40, maxR: 320, el: 'fire' })), p2(M.strikes('fp', { dmg: 36, n: 6, el: 'fire', rad: 70 }))),
-    { p2: 0.5, p2roar: true, felled: 'GREAT ENEMY FELLED', poise: 9999 }),
+    62, 70, 'demigod', merge(K.colossal(2.0, 24, { el: 'fire' }), M.volley('fb', { dmg: 20, n: 3, el: 'fire', spd: 260, pr: 16 }), M.breath('br', { dmg: 8, range: 300, el: 'fire' }), M.charge('rl', { dmg: 28, spd: 480, rad: 60 }), p2(M.nova('fl', { dmg: 28, maxR: 320, el: 'fire' })), p2(M.strikes('fp', { dmg: 24, n: 6, el: 'fire', rad: 70 }))),
+    { p2: 0.5, p2roar: true, felled: 'GREAT ENEMY FELLED', poise: 9999, arena: 900 }),
   niall: BD('Commander Niall', HU({ armor: '#6a6a72', body: '#4a4a52', cape: '#8a2a2a', helm: 'knight', plume: '#c0c0c8', features: ['furcollar'], weapon: WPN('halberd', 90, { col: '#c0c0d0' }) }),
     22, 95, 'major', merge(K.halberd(1.3, 32, { el: 'frost', status: 'frost' }), M.strikes('lt', { dmg: 28, n: 5, el: 'lightning' }), M.nova('fr', { dmg: 28, maxR: 220, el: 'frost', status: 'frost' })), { felled: 'GREAT ENEMY FELLED' }),
   borealis: BD('Borealis the Freezing Fog', { kind: 'dragon', body: '#9ab0c0', wing: '#7a90a0', belly: '#d0e8f0', eye: '#c0f0ff' },

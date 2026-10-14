@@ -40,7 +40,11 @@ function recalcStats() {
   P.maxHp = Math.round(130 + (P.vig - 10) * 15 + Math.max(0, P.vig - 40) * 5);
   P.maxSt = 90 + (P.end - 10) * 7;
   P.maxFp = 50 + (P.mnd - 10) * 6;
-  P.maxFlasks = Math.min(14, 4 + P.seeds);
+  // Golden Seeds add charges; the split between Crimson (HP) and Cerulean (FP) is chosen at graces
+  P.totalFlasks = Math.min(14, 5 + P.seeds);
+  P.cerulean = clamp(P.cerulean, 0, P.totalFlasks);
+  P.maxFlasks = P.totalFlasks - P.cerulean; P.maxFpFlasks = P.cerulean;
+  P.flasks = Math.min(P.flasks, P.maxFlasks); P.fpFlasks = Math.min(P.fpFlasks, P.maxFpFlasks);
 }
 const dmgMult = () => (1 + (P.str - 10) * 0.065) * (1 + wLevel() * 0.1) * (P.buffT > 0 ? P.buffMul : 1);
 const tierMul = (t) => ({ hp: 1 + 0.62 * (t - 1), dmg: 1 + 0.36 * (t - 1), runes: Math.pow(1.75, t - 1) });
@@ -185,13 +189,13 @@ function placePlayer(x, y, inst) {
   if (inst !== G.inst) { G.inst = inst; activateRealm(); }
   if (inst) P.mounted = false;
   cam.x = P.x; cam.y = P.y;
-  G.arenaFight = null; G.arenaRect = null; stopDrone();
+  G.arenaFight = null; G.arenaRect = null; G.arenaCirc = null; stopDrone();
   G.zone = ''; G.locName = '';
 }
 function respawnAtGrace() {
   const g = G.graces[G.graceIdx];
   recalcStats();
-  P.hp = P.hpLag = P.maxHp; P.st = P.maxSt; P.fp = P.maxFp; P.flasks = P.maxFlasks;
+  P.hp = P.hpLag = P.maxHp; P.st = P.maxSt; P.fp = P.maxFp; P.flasks = P.maxFlasks; P.fpFlasks = P.maxFpFlasks;
   P.state = 'free'; P.t = 0; P.status = { bleed: 0, rot: 0, poison: 0, frost: 0 }; P.rotT = 0; P.poisonT = 0; P.frostT = 0;
   G.inst = g.inst || null;
   spawnWorld();
@@ -255,9 +259,11 @@ function startRoll(mv) {
   sfx('roll');
   return true;
 }
-function startHeal() {
-  if (P.flasks <= 0) { sfx('empty'); banner('No flasks remaining', '#bba', '', 1.2, 0.45, 'small'); return true; }
-  P.flasks--; P.state = 'heal'; P.t = 0; P.healed = false;
+function startHeal(kind = 'hp') {
+  const fp = kind === 'fp';
+  if ((fp ? P.fpFlasks : P.flasks) <= 0) { sfx('empty'); banner(fp ? 'No Cerulean Tears remaining' : 'No Crimson Tears remaining', '#bba', '', 1.2, 0.45, 'small'); return true; }
+  if (fp) P.fpFlasks--; else P.flasks--;
+  P.state = 'heal'; P.healKind = kind; P.t = 0; P.healed = false;
   return true;
 }
 function toggleLock() {
@@ -268,7 +274,7 @@ function whistle() {
   if (P.state === 'dead') return;
   if (P.mounted) { P.mounted = false; sfx('roll'); return; }
   if (G.inst) { banner('Torrent cannot be summoned here', '#bba', '', 1.6, 0.45, 'small'); return; }
-  if (G.arenaFight) return;
+  if (G.arenaRect) return;
   P.mounted = true; sfx('neigh');
   burst(P.x, P.y, 20, 'rgba(200,220,255,0.7)', 90, 0.6, 3, 0, true);
 }
@@ -284,6 +290,7 @@ function tryBuffered(mv) {
   } else if (b === 'heavy') { ok = startAttack(w.heavy, mv); if (ok) P.combo = 0; }
   else if (b === 'roll') ok = startRoll(mv);
   else if (b === 'heal') ok = startHeal();
+  else if (b === 'fpheal') ok = startHeal('fp');
   else if (b === 'skill') ok = startSkill(mv);
   if (ok) P.buffer = null;
   return ok;
@@ -434,8 +441,9 @@ function updatePlayer(dt) {
   if (input.heavy) { P.buffer = 'heavy'; P.bufferT = 0.4; }
   if (input.roll) { P.buffer = 'roll'; P.bufferT = 0.4; }
   if (input.heal) { P.buffer = 'heal'; P.bufferT = 0.3; }
+  if (input.fpheal) { P.buffer = 'fpheal'; P.bufferT = 0.3; }
   if (input.skill) { P.buffer = 'skill'; P.bufferT = 0.4; }
-  input.attack = input.heavy = input.roll = input.heal = input.skill = false;
+  input.attack = input.heavy = input.roll = input.heal = input.fpheal = input.skill = false;
   if (input.lock) { input.lock = false; toggleLock(); }
   if (input.whistle) { input.whistle = false; whistle(); }
   if (input.ctx) { input.ctx = false; doContext(); }
@@ -498,8 +506,12 @@ function updatePlayer(dt) {
     case 'heal': {
       if (mv.m > 0) { moveEnt(P, mv.x * (P.mounted ? 200 : 55) * dt, mv.y * (P.mounted ? 200 : 55) * dt); P.moveAnim += dt * 4; P.moving = 55; }
       if (P.t > 0.5 && !P.healed) {
-        P.healed = true; P.hp = Math.min(P.maxHp, P.hp + P.maxHp * 0.55 + 20); sfx('heal');
-        for (let i = 0; i < 26; i++) G.particles.push({ x: P.x + rand(-14, 14), y: P.y + rand(-4, 10), vx: rand(-10, 10), vy: rand(-80, -30), life: rand(0.5, 1), max: 1, size: rand(2, 4), col: pick(['#f0c060', '#ffdd88', '#e8a040']), grav: 0, glow: true });
+        P.healed = true; sfx('heal');
+        const fp = P.healKind === 'fp';
+        if (fp) P.fp = Math.min(P.maxFp, P.fp + P.maxFp * 0.6 + 20);
+        else P.hp = Math.min(P.maxHp, P.hp + P.maxHp * 0.55 + 20);
+        const cols = fp ? ['#7aa8ff', '#a8c8ff', '#5a80e8'] : ['#f0c060', '#ffdd88', '#e8a040'];
+        for (let i = 0; i < 26; i++) G.particles.push({ x: P.x + rand(-14, 14), y: P.y + rand(-4, 10), vx: rand(-10, 10), vy: rand(-80, -30), life: rand(0.5, 1), max: 1, size: rand(2, 4), col: pick(cols), grav: 0, glow: true });
       }
       if (P.t >= 0.95) P.state = 'free';
       break;
@@ -626,7 +638,7 @@ function damageEnemy(e, dmg, poise, ang, crit, heavy, el) {
   e.hp -= dmg; e.flash = 0.12; e.showHp = 4;
   e.dmgAccum += dmg; e.dmgAccumT = 1.4;
   dmgNumber(e.x, e.y - e.r, dmg, crit ? '#ffcf5a' : '#fff', crit);
-  if (e.state === 'idle' || e.state === 'return') { e.state = 'chase'; e.t = 0; }
+  if (e.state === 'idle' || e.state === 'return') { e.state = 'chase'; e.t = 0; if (e.boss && !e.inst) fieldArena(e); }
   if (!['stagger', 'dormant', 'intro', 'roar'].includes(e.state)) {
     e.poise -= poise;
     if (!e.boss && e.def.hp < 300) { e.vx += Math.cos(ang) * (heavy ? 160 : 70); e.vy += Math.sin(ang) * (heavy ? 160 : 70); }
@@ -649,7 +661,7 @@ function killEnemy(e) {
     G.defeated.add(e.key);
     G.defeatedTypes.add(e.type);
     mates.forEach((o) => G.defeatedTypes.add(o.type));
-    if (G.arenaFight === e.key) { G.arenaFight = null; G.arenaRect = null; }
+    if (G.arenaFight === e.key) { G.arenaFight = null; G.arenaRect = null; G.arenaCirc = null; }
     stopDrone();
     G.hitstop = 0.35;
     banner(e.def.felled || (e.def.rank === 'field' || e.def.rank === 'dungeon' ? 'ENEMY FELLED' : 'GREAT ENEMY FELLED'), '#e9cf86', '', 5, 1.1, 'big');
@@ -696,7 +708,7 @@ function hurtPlayer(dmg, srcAng, push = 140, src = null, el = null, status = nul
 function playerDie() {
   if (P.state === 'dead') return;
   P.hp = 0; P.state = 'dead'; P.t = 0; P.lock = null; P.mounted = false;
-  G.deadT = 0; G.arenaFight = null; G.arenaRect = null; stopDrone();
+  G.deadT = 0; G.arenaFight = null; G.arenaRect = null; G.arenaCirc = null; stopDrone();
   G.bloodstain = P.runes > 0 ? { x: P.x, y: P.y, runes: P.runes, inst: G.inst } : null;
   P.runes = 0;
   sfx('die'); vibrate([60, 40, 120]);
@@ -859,7 +871,10 @@ function updateEnemy(e, dt) {
         moveEnt(e, Math.cos(a) * 40 * dt, Math.sin(a) * 40 * dt); e.walk += dt * 2.5;
       }
       const calm = G.safe || (!e.boss && G.bossBusy);
-      if (playerAlive && !calm && d < def.aggro * (P.mounted ? 1.15 : 1)) { e.state = 'chase'; e.t = 0; if (e.boss && !e.inst) { startDrone(e.def.drone || 60); if (def.mount) sfx('neigh'); } }
+      if (playerAlive && !calm && d < def.aggro * (P.mounted ? 1.15 : 1)) {
+        e.state = 'chase'; e.t = 0;
+        if (e.boss && !e.inst) { startDrone(e.def.drone || 60); if (def.mount) sfx('neigh'); fieldArena(e); }
+      }
       return;
     }
     case 'return': {
@@ -996,6 +1011,16 @@ function startActive(e, a, toP) {
   else if (kind === 'beam') sfx('orb');
   else if (kind !== 'circle' && kind !== 'spin') sfx(e.boss || (e.def.look && e.def.look.kind === 'troll') ? 'heavy' : 'enemySwing');
   if (kind === 'spin') sfx('heavy');
+}
+
+// great field bosses seal a ring of fog around their ground: no walking off, no free reset
+function fieldArena(e) {
+  const def = e.def;
+  if (!e.key || G.arenaFight || !(def.arena || ['major', 'demigod', 'god'].includes(def.rank))) return;
+  const r = def.arena || 760;
+  if (Math.hypot(P.x - e.home.x, P.y - e.home.y) > r - P.r) return;
+  G.arenaFight = e.key; G.arenaCirc = { x: e.home.x, y: e.home.y, r };
+  banner(def.name, '#e9cf86', '', 2.2, 0.6, 'zone'); sfx('fog');
 }
 
 function updateActive(e, a, dt, d, toP) {
@@ -1214,6 +1239,13 @@ function update(dt) {
     const rc = G.arenaRect;
     for (const e of [P, ...G.enemies.filter((x) => x.key === G.arenaFight)]) {
       e.x = clamp(e.x, rc.x + e.r, rc.x + rc.w - e.r); e.y = clamp(e.y, rc.y + e.r, rc.y + rc.h - e.r);
+    }
+  }
+  if (G.arenaFight && G.arenaCirc) {
+    const c = G.arenaCirc;
+    for (const e of [P, ...G.enemies.filter((x) => x.key === G.arenaFight)]) {
+      const dx = e.x - c.x, dy = e.y - c.y, dd = Math.hypot(dx, dy), lim = c.r - e.r;
+      if (dd > lim) { e.x = c.x + dx / dd * lim; e.y = c.y + dy / dd * lim; }
     }
   }
   computeContext();

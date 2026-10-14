@@ -29,15 +29,18 @@ function drawHUD() {
   // flask + weapon box
   ctx.textAlign = 'left';
   const fy = Math.max(sy + 2, y0 + 38);
-  ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(x0 - 2, fy - 2, 30, 26);
-  ctx.strokeStyle = 'rgba(201,169,90,0.5)'; ctx.strokeRect(x0 - 2.5, fy - 2.5, 31, 27);
-  ctx.fillStyle = P.flasks > 0 ? '#e39a3a' : 'rgba(255,255,255,0.2)';
-  ctx.beginPath(); ctx.arc(x0 + 13, fy + 13, 6.5, 0, TAU); ctx.fill(); ctx.fillRect(x0 + 10.5, fy + 2, 5, 6);
-  ctx.font = 'bold 11px Georgia, serif'; ctx.fillStyle = '#efe3c2'; ctx.fillText(P.flasks, x0 + 20, fy + 22);
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(x0 - 2, fy - 2, 58, 26);
+  ctx.strokeStyle = 'rgba(201,169,90,0.5)'; ctx.strokeRect(x0 - 2.5, fy - 2.5, 59, 27);
+  for (const [i, n, col] of [[0, P.flasks, '#e39a3a'], [1, P.fpFlasks, '#6a98f0']]) {
+    const fx = x0 + i * 28;
+    ctx.fillStyle = n > 0 ? col : 'rgba(255,255,255,0.2)';
+    ctx.beginPath(); ctx.arc(fx + 13, fy + 13, 6.5, 0, TAU); ctx.fill(); ctx.fillRect(fx + 10.5, fy + 2, 5, 6);
+    ctx.font = 'bold 11px Georgia, serif'; ctx.fillStyle = '#efe3c2'; ctx.fillText(n, fx + 20, fy + 22);
+  }
   ctx.font = '11px Cinzel, Georgia, serif'; ctx.fillStyle = 'rgba(232,223,200,0.8)';
   const wl = wLevel();
-  ctx.fillText(weapon().name + (wl ? ' +' + wl : ''), x0 + 36, fy + 10);
-  if (weapon().skill) { ctx.font = '9px Cinzel, Georgia, serif'; ctx.fillStyle = 'rgba(150,180,255,0.75)'; ctx.fillText(weapon().skill.name + ' (' + weapon().skill.fp + ' FP)', x0 + 36, fy + 22); }
+  ctx.fillText(weapon().name + (wl ? ' +' + wl : ''), x0 + 64, fy + 10);
+  if (weapon().skill) { ctx.font = '9px Cinzel, Georgia, serif'; ctx.fillStyle = 'rgba(150,180,255,0.75)'; ctx.fillText(weapon().skill.name + ' (' + weapon().skill.fp + ' FP)', x0 + 64, fy + 22); }
   if (P.buffT > 0) { ctx.fillStyle = '#ffe08a'; ctx.fillText('✦ ' + Math.ceil(P.buffT) + 's', x0, fy + 38); }
   // runes, level, clock, great runes
   ctx.textAlign = 'right';
@@ -101,7 +104,7 @@ function drawControls() {
       continue;
     }
     let active = b.down;
-    const dim = (b.name === 'heal' && P.flasks <= 0) || (b.name === 'skill' && (!weapon().skill || P.fp < weapon().skill.fp)) || (b.name === 'whistle' && !!G.inst);
+    const dim = (b.name === 'heal' && P.flasks <= 0) || (b.name === 'fpheal' && P.fpFlasks <= 0) || (b.name === 'skill' && (!weapon().skill || P.fp < weapon().skill.fp)) || (b.name === 'whistle' && !!G.inst);
     if (b.name === 'lock') active = active || !!P.lock;
     if (b.name === 'whistle') active = active || P.mounted;
     ctx.fillStyle = active ? 'rgba(201,169,90,0.35)' : 'rgba(10,8,5,0.45)';
@@ -136,6 +139,12 @@ function drawIcon(b, dim) {
       ctx.fillRect(-s * 0.2, -s * 0.8, s * 0.4, s * 0.6);
       ctx.fillStyle = '#efe3c2'; ctx.font = `bold ${Math.round(r * 0.4)}px Georgia, serif`; ctx.textAlign = 'center';
       ctx.fillText(P.flasks, s * 0.95, s * 1.15); break;
+    case 'fpheal':
+      ctx.fillStyle = dim ? 'rgba(106,152,240,0.3)' : '#6a98f0';
+      ctx.beginPath(); ctx.arc(0, s * 0.25, s * 0.6, 0, TAU); ctx.fill();
+      ctx.fillRect(-s * 0.2, -s * 0.8, s * 0.4, s * 0.6);
+      ctx.fillStyle = '#efe3c2'; ctx.font = `bold ${Math.round(r * 0.45)}px Georgia, serif`; ctx.textAlign = 'center';
+      ctx.fillText(P.fpFlasks, s * 1.05, s * 1.25); break;
     case 'lock':
       ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, s * 0.7, 0, TAU); ctx.stroke();
       ctx.beginPath(); ctx.arc(0, 0, 2, 0, TAU); ctx.fill(); break;
