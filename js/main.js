@@ -157,6 +157,7 @@ function setPause(on) {
   if (on) G.menuOpenedAt = performance.now();
   $('pause').classList.toggle('show', on);
   $('btnSound').textContent = 'Sound: ' + (AU.on ? 'On' : 'Off');
+  $('btnExport').textContent = 'Export save (copy)'; $('exportBox').classList.remove('show');
   const bosses = [...G.defeatedTypes].filter((t) => BOSSES[t]).length;
   $('progress').textContent = `Bosses felled: ${G.defeated.size}  ·  Great Runes: ${P.greatRunes.length}  ·  Graces: ${G.graces.filter((g) => g.found).length}/${G.graces.length}  ·  Boss types: ${bosses}/${Object.keys(BOSSES).length}`;
   clearPointers();
@@ -167,6 +168,19 @@ $('btnMapP').addEventListener('click', () => { setPause(false); openMap(); });
 $('btnSound').addEventListener('click', () => {
   AU.on = !AU.on; if (AU.master) AU.master.gain.value = AU.on ? 0.55 : 0;
   $('btnSound').textContent = 'Sound: ' + (AU.on ? 'On' : 'Off'); save();
+});
+$('btnExport').addEventListener('click', () => {
+  save();
+  let text = '';
+  try { text = localStorage.getItem(SAVE_KEY) || ''; } catch (e) { /* storage unavailable */ }
+  if (!text) { $('btnExport').textContent = 'No save found yet'; return; }
+  const box = $('exportBox');
+  box.value = text; box.classList.add('show');
+  const done = (ok) => { $('btnExport').textContent = ok ? 'Copied! Paste it in the chat' : 'Copy the text below manually'; };
+  // the text box stays visible as a fallback: some browsers block the clipboard for local files
+  box.focus(); box.select(); box.setSelectionRange(0, text.length);
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => done(true), () => done(document.execCommand && document.execCommand('copy')));
+  else done(document.execCommand && document.execCommand('copy'));
 });
 $('btnReset').addEventListener('click', () => {
   if (!confirm('Erase your progress and start over?')) return;

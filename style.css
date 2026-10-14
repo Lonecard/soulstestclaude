@@ -93,6 +93,9 @@ button:disabled { opacity: .35; }
 .list .btns { display: flex; flex-direction: column; gap: 4px; }
 #btnTime { display: block; width: 100%; margin: 8px 0 0; }
 #progress { margin-bottom: 8px; line-height: 1.5; }
+#exportBox { display: none; width: 100%; height: 70px; margin: 4px 0; box-sizing: border-box; font: 10px monospace;
+  background: rgba(0,0,0,.5); color: #e8dfc8; border: 1px solid rgba(201,169,90,.5); border-radius: 4px; resize: none; }
+#exportBox.show { display: block; }
 
 /* world map */
 .mapov { padding: 0; flex-direction: column; background: #120f0b; }
