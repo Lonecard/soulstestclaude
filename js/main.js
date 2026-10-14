@@ -8,12 +8,14 @@ const graceKey = (g) => (g.inst || 'ow') + '|' + g.name;
 const SAVE_KEY = 'ashenreach_save_v4';
 const OLD_SAVE_KEY = 'ashenreach_save_v3'; // older map scale: keep progress, drop the bloodstain position
 function save() {
+  if (G.wiped) return;
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       vig: P.vig, mnd: P.mnd, end: P.end, str: P.str, runes: P.runes, seeds: P.seeds, cerulean: P.cerulean, staff: P.staff, spells: P.spells, memory: P.memory, ashes: P.ashes, ash: P.ash, bell: P.bell, weapon: P.weapon, owned: P.owned, wlv: P.wlv,
       greatRunes: P.greatRunes, grace: graceKey(G.graces[G.graceIdx]), found: G.graces.filter((g) => g.found).map(graceKey),
       defeated: [...G.defeated], defeatedTypes: [...G.defeatedTypes], taken: [...G.taken], bloodstain: G.bloodstain, clock: G.clock, sound: AU.on,
     }));
+    localStorage.removeItem(OLD_SAVE_KEY); // migrated: never fall back to the old format again
   } catch (e) { /* storage unavailable */ }
 }
 function load() {
@@ -43,7 +45,10 @@ function load() {
     return true;
   } catch (e) { return false; }
 }
-function wipeSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } }
+function wipeSave() {
+  G.wiped = true; // nothing may write the save again before the reload
+  try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(OLD_SAVE_KEY); } catch (e) { /* ignore */ }
+}
 
 // ---------------------------------------------------------------- menus
 // A tap that opens a menu can also "click" whatever button appears under the finger.
